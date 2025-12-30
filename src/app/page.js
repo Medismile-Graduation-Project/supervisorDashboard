@@ -2,19 +2,14 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppSelector } from '@/hooks/useAppSelector';
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
 
+  // إعادة توجيه مباشر إلى صفحة تسجيل الدخول
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
-    } else {
-      router.push('/login');
-    }
-  }, [isAuthenticated, router]);
+    router.replace('/login');
+  }, [router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">

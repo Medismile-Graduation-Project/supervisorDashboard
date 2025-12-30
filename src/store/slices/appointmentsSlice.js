@@ -7,7 +7,8 @@ export const fetchAppointments = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await api.get('/appointments/', { params });
-      return response.data.data;
+      // معالجة الاستجابة - قد تكون response.data.data أو response.data
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -65,7 +66,7 @@ const appointmentsSlice = createSlice({
       })
       .addCase(fetchAppointments.fulfilled, (state, action) => {
         state.loading = false;
-        state.appointments = action.payload;
+        state.appointments = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchAppointments.rejected, (state, action) => {
         state.loading = false;
@@ -87,5 +88,13 @@ const appointmentsSlice = createSlice({
 
 export const { clearCurrentAppointment, clearError } = appointmentsSlice.actions;
 export default appointmentsSlice.reducer;
+
+
+
+
+
+
+
+
 
 

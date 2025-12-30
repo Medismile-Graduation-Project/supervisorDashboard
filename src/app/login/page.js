@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
-import { login, clearError } from '@/store/slices/authSlice';
+import { login, clearError, initializeAuth } from '@/store/slices/authSlice';
 import toast from 'react-hot-toast';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
@@ -12,7 +12,8 @@ import { motion } from 'framer-motion';
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { loading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { loading, error, isAuthenticated, initialized } = useAppSelector((state) => state.auth);
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -20,12 +21,22 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
+  // تجنب مشاكل Hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // تهيئة المصادقة
+  useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
+
   // إعادة توجيه إذا كان المستخدم مسجل دخول بالفعل
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
+    if (initialized && isAuthenticated) {
+      router.replace('/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [initialized, isAuthenticated, router]);
 
   // مسح الأخطاء عند تغيير القيم
   useEffect(() => {
@@ -61,22 +72,29 @@ export default function LoginPage() {
     }
 
     try {
-      const result = await dispatch(login(formData));
+      // إرسال email و password إلى API
+      const result = await dispatch(login({ email: formData.email, password: formData.password }));
+      
       if (login.fulfilled.match(result)) {
         toast.success('تم تسجيل الدخول بنجاح', {
           icon: '✅',
           duration: 2000,
         });
-        router.push('/dashboard');
-      } else {
-        const errorMessage = result.payload?.message || 
-                           result.payload?.error || 
+        // التوجيه إلى الصفحة الرئيسية للداشبورد
+        router.replace('/dashboard');
+      } else if (login.rejected.match(result)) {
+        // معالجة الأخطاء من API
+        const errorPayload = result.payload;
+        const errorMessage = errorPayload?.detail || 
+                           errorPayload?.message || 
+                           errorPayload?.error || 
                            'فشل تسجيل الدخول. يرجى التحقق من البيانات';
         toast.error(errorMessage, {
           duration: 4000,
         });
       }
     } catch (err) {
+      console.error('Login error:', err);
       toast.error('حدث خطأ أثناء تسجيل الدخول', {
         duration: 4000,
       });
@@ -150,6 +168,7 @@ export default function LoginPage() {
                     } bg-light px-4 py-3 pr-12 text-dark placeholder-dark-lighter focus:outline-none focus:ring-2 transition-colors`}
                     placeholder="supervisor@university.edu"
                     disabled={loading}
+                    suppressHydrationWarning
                   />
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                     <svg
@@ -199,6 +218,7 @@ export default function LoginPage() {
                     } bg-light px-4 py-3 pr-12 text-dark placeholder-dark-lighter focus:outline-none focus:ring-2 transition-colors`}
                     placeholder="••••••••"
                     disabled={loading}
+                    suppressHydrationWarning
                   />
                   <button
                     type="button"
@@ -256,6 +276,7 @@ export default function LoginPage() {
                 whileHover={{ scale: loading ? 1 : 1.02 }}
                 whileTap={{ scale: loading ? 1 : 0.98 }}
                 className="w-full rounded-lg bg-gradient-to-r from-sky-600 to-sky-700 px-4 py-3.5 text-sm font-semibold text-white hover:from-sky-700 hover:to-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+                suppressHydrationWarning
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">

@@ -6,8 +6,8 @@ export const fetchPendingContent = createAsyncThunk(
   'content/fetchPendingContent',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get('/community/moderation/pending/', { params });
-      return response.data.data;
+      const response = await api.get('/community/content/', { params });
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -18,8 +18,8 @@ export const approveContent = createAsyncThunk(
   'content/approveContent',
   async (contentId, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/community/moderation/${contentId}/approve/`);
-      return response.data.data;
+      const response = await api.post(`/community/content/${contentId}/approve/`);
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -30,10 +30,10 @@ export const rejectContent = createAsyncThunk(
   'content/rejectContent',
   async ({ contentId, rejection_reason }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/community/moderation/${contentId}/reject/`, {
-        rejection_reason,
+      const response = await api.post(`/community/content/${contentId}/reject/`, {
+        rejection_reason: rejection_reason || '',
       });
-      return response.data.data;
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -63,7 +63,7 @@ const contentSlice = createSlice({
       })
       .addCase(fetchPendingContent.fulfilled, (state, action) => {
         state.loading = false;
-        state.pendingContent = action.payload;
+        state.pendingContent = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchPendingContent.rejected, (state, action) => {
         state.loading = false;

@@ -9,8 +9,9 @@ import {
   updateCase,
   fetchAssignmentRequests,
   respondToAssignmentRequest,
+  fetchCaseHistory,
 } from '@/store/slices/casesSlice';
-import { fetchSessions, reviewSession } from '@/store/slices/sessionsSlice';
+import { fetchSessions, reviewSession, fetchSessionById } from '@/store/slices/sessionsSlice';
 import {
   ArrowRightIcon,
   PencilIcon,
@@ -57,8 +58,8 @@ export default function CaseDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { currentCase, loading } = useAppSelector((state) => state.cases);
-  const { sessions } = useAppSelector((state) => state.sessions);
+  const { currentCase, loading, caseHistory } = useAppSelector((state) => state.cases);
+  const { sessions, currentSession } = useAppSelector((state) => state.sessions);
   const { assignmentRequests } = useAppSelector((state) => state.cases);
 
   const [activeTab, setActiveTab] = useState('details');
@@ -83,6 +84,7 @@ export default function CaseDetailsPage() {
       dispatch(fetchCaseById(params.id));
       dispatch(fetchSessions({ caseId: params.id }));
       dispatch(fetchAssignmentRequests({ case: params.id }));
+      dispatch(fetchCaseHistory(params.id));
     }
   }, [params.id, dispatch]);
 
@@ -297,6 +299,7 @@ export default function CaseDetailsPage() {
             { id: 'details', label: 'التفاصيل' },
             { id: 'assignments', label: 'طلبات الإسناد', badge: pendingRequests.length },
             { id: 'sessions', label: 'الجلسات', badge: sessionsNeedingReview.length },
+            { id: 'history', label: 'التاريخ' },
             { id: 'history', label: 'السجل' },
           ].map((tab) => (
             <button
@@ -620,9 +623,11 @@ export default function CaseDetailsPage() {
                       </div>
                       {(session.status === 'completed' || session.status === 'needs_review') && (
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             setSelectedSession(session);
                             setSessionFeedback('');
+                            // جلب تفاصيل الجلسة الكاملة
+                            await dispatch(fetchSessionById(session.id));
                             setShowSessionModal(true);
                           }}
                           className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 transition-colors"
@@ -640,23 +645,23 @@ export default function CaseDetailsPage() {
 
         {activeTab === 'history' && (
           <div className="rounded-lg bg-light border border-light-gray">
-            {currentCase.history?.length === 0 ? (
+            {!caseHistory || caseHistory.length === 0 ? (
               <div className="p-8 text-center">
                 <p className="text-dark-lighter">لا يوجد سجل</p>
               </div>
             ) : (
               <div className="divide-y divide-light-gray">
-                {currentCase.history?.map((item, index) => (
+                {Array.isArray(caseHistory) && caseHistory.map((item, index) => (
                   <div key={item.id || index} className="p-6">
                     <div className="flex items-start gap-4">
                       <div className="shrink-0">
                         <div className="h-2 w-2 rounded-full bg-sky-500 mt-2"></div>
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-dark">{item.description}</p>
+                        <p className="font-medium text-dark">{item.description || item.action || 'حدث'}</p>
                         <p className="text-xs text-dark-lighter mt-1">
-                          {item.performed_by?.first_name} {item.performed_by?.last_name} -{' '}
-                          {new Date(item.created_at).toLocaleDateString('ar-SA', {
+                          {item.performed_by?.first_name || item.user?.first_name || ''} {item.performed_by?.last_name || item.user?.last_name || ''} -{' '}
+                          {new Date(item.created_at || item.timestamp).toLocaleDateString('ar-SA', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -724,12 +729,72 @@ export default function CaseDetailsPage() {
       {/* Session Review Modal */}
       {showSessionModal && selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-light p-6">
+          <div className="w-full max-w-2xl rounded-lg bg-light p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-dark mb-4">مراجعة الجلسة</h3>
-            <div className="mb-4 p-4 rounded-lg bg-light-gray">
-              <p className="text-sm text-dark-lighter mb-2">ملاحظات الطالب:</p>
-              <p className="text-sm text-dark whitespace-pre-wrap">{selectedSession.notes}</p>
+            
+            {/* Session Details */}
+            <div className="space-y-4 mb-4">
+              {/* Status */}
+              <div className="p-4 rounded-lg bg-light-gray">
+                <p className="text-sm font-medium text-dark-lighter mb-2">حالة الجلسة:</p>
+                <span
+                  className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${
+                    (currentSession?.status || selectedSession.status) === 'approved'
+                      ? 'bg-green-100 text-green-800'
+                      : (currentSession?.status || selectedSession.status) === 'rejected'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}
+                >
+                  {(currentSession?.status || selectedSession.status) === 'approved'
+                    ? 'موافق عليها'
+                    : (currentSession?.status || selectedSession.status) === 'rejected'
+                    ? 'مرفوضة'
+                    : 'تحتاج مراجعة'}
+                </span>
+              </div>
+
+              {/* Notes */}
+              <div className="p-4 rounded-lg bg-light-gray">
+                <p className="text-sm font-medium text-dark-lighter mb-2">ملاحظات الطالب:</p>
+                <p className="text-sm text-dark whitespace-pre-wrap">
+                  {currentSession?.notes || selectedSession.notes || 'لا توجد ملاحظات'}
+                </p>
+              </div>
+
+              {/* Attachments */}
+              {currentSession?.attachments && currentSession.attachments.length > 0 && (
+                <div className="p-4 rounded-lg bg-light-gray">
+                  <p className="text-sm font-medium text-dark-lighter mb-2">المرفقات:</p>
+                  <div className="space-y-2">
+                    {currentSession.attachments.map((attachment, index) => (
+                      <a
+                        key={index}
+                        href={attachment.url || attachment}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-sky-600 hover:text-sky-700"
+                      >
+                        <span>📎</span>
+                        <span>{attachment.name || attachment.filename || `مرفق ${index + 1}`}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Treatment Sequence */}
+              {currentSession?.treatment_sequence && (
+                <div className="p-4 rounded-lg bg-light-gray">
+                  <p className="text-sm font-medium text-dark-lighter mb-2">التسلسل العلاجي:</p>
+                  <p className="text-sm text-dark whitespace-pre-wrap">
+                    {currentSession.treatment_sequence}
+                  </p>
+                </div>
+              )}
             </div>
+
+            {/* Supervisor Feedback */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-dark mb-2">
                 ملاحظات المشرف
@@ -742,6 +807,8 @@ export default function CaseDetailsPage() {
                 placeholder="أضف ملاحظاتك على الجلسة..."
               />
             </div>
+
+            {/* Actions */}
             <div className="flex gap-3">
               <button
                 onClick={() => handleReviewSession(selectedSession.id, 'approved')}

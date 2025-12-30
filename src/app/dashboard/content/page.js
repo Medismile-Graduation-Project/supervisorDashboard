@@ -52,7 +52,7 @@ const statusColors = {
 
 export default function ContentPage() {
   const dispatch = useAppDispatch();
-  const { pendingContent, loading } = useAppSelector((state) => state.content);
+  const { pendingContent = [], loading } = useAppSelector((state) => state.content);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -67,7 +67,7 @@ export default function ContentPage() {
     dispatch(fetchPendingContent());
   }, [dispatch]);
 
-  const filteredContent = pendingContent.filter((content) => {
+  const filteredContent = Array.isArray(pendingContent) ? pendingContent.filter((content) => {
     const matchesSearch =
       content.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       content.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,25 +81,28 @@ export default function ContentPage() {
       !localFilters.status || content.status === localFilters.status;
 
     return matchesSearch && matchesType && matchesStatus;
-  });
+  }) : [];
 
   const handleApproveContent = async (contentId) => {
     try {
       const result = await dispatch(approveContent(contentId));
       if (approveContent.fulfilled.match(result)) {
-        toast.success('تمت الموافقة على المحتوى بنجاح');
+        toast.success('تم اعتماد المحتوى بنجاح');
         dispatch(fetchPendingContent());
       } else {
-        toast.error(result.payload?.message || 'فشل الموافقة على المحتوى');
+        const errorMessage = result.payload?.message || 
+                           result.payload?.error || 
+                           'فشل اعتماد المحتوى';
+        toast.error(errorMessage);
       }
     } catch (error) {
-      toast.error('حدث خطأ أثناء الموافقة على المحتوى');
+      toast.error('حدث خطأ أثناء اعتماد المحتوى');
     }
   };
 
   const handleRejectContent = async () => {
-    if (!selectedContent || !rejectionReason.trim()) {
-      toast.error('يرجى إدخال سبب الرفض');
+    if (!selectedContent) {
+      toast.error('يرجى اختيار المحتوى');
       return;
     }
 
@@ -107,7 +110,7 @@ export default function ContentPage() {
       const result = await dispatch(
         rejectContent({
           contentId: selectedContent.id,
-          rejection_reason: rejectionReason,
+          rejection_reason: rejectionReason || '',
         })
       );
       if (rejectContent.fulfilled.match(result)) {
@@ -117,7 +120,10 @@ export default function ContentPage() {
         setRejectionReason('');
         dispatch(fetchPendingContent());
       } else {
-        toast.error(result.payload?.message || 'فشل رفض المحتوى');
+        const errorMessage = result.payload?.message || 
+                           result.payload?.error || 
+                           'فشل رفض المحتوى';
+        toast.error(errorMessage);
       }
     } catch (error) {
       toast.error('حدث خطأ أثناء رفض المحتوى');
@@ -125,11 +131,11 @@ export default function ContentPage() {
   };
 
   const stats = {
-    total: pendingContent.length,
-    posts: pendingContent.filter((c) => c.content_type === 'post').length,
-    comments: pendingContent.filter((c) => c.content_type === 'comment').length,
-    questions: pendingContent.filter((c) => c.content_type === 'question').length,
-    media: pendingContent.filter((c) => c.content_type === 'media').length,
+    total: Array.isArray(pendingContent) ? pendingContent.length : 0,
+    posts: Array.isArray(pendingContent) ? pendingContent.filter((c) => c.content_type === 'post').length : 0,
+    comments: Array.isArray(pendingContent) ? pendingContent.filter((c) => c.content_type === 'comment').length : 0,
+    questions: Array.isArray(pendingContent) ? pendingContent.filter((c) => c.content_type === 'question').length : 0,
+    media: Array.isArray(pendingContent) ? pendingContent.filter((c) => c.content_type === 'media').length : 0,
   };
 
   return (
@@ -138,7 +144,7 @@ export default function ContentPage() {
       <div>
         <h1 className="text-2xl font-bold text-dark">إدارة المحتوى المجتمعي</h1>
         <p className="mt-1 text-sm text-dark-lighter">
-          مراجعة وموافقة/رفض المحتوى المجتمعي المعلق
+          مراجعة واعتماد/رفض المحتوى المعلق من منشورات طلابك ضمن جامعتك
         </p>
       </div>
 
@@ -464,4 +470,12 @@ export default function ContentPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
 

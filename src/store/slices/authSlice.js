@@ -6,16 +6,30 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await api.post('/accounts/auth/login/', { email, password });
+      const response = await api.post('/accounts/login/supervisor/', { email, password });
+      
+      // البنية الفعلية للاستجابة: response.data.tokens و response.data.user
+      const tokens = response.data.tokens || response.data.data?.tokens;
+      const user = response.data.user || response.data.data?.user;
       
       // حفظ Tokens في localStorage
       if (typeof window !== 'undefined') {
-        localStorage.setItem('access_token', response.data.data.tokens.access);
-        localStorage.setItem('refresh_token', response.data.data.tokens.refresh);
-        localStorage.setItem('user', JSON.stringify(response.data.data.user));
+        if (tokens?.access) {
+          localStorage.setItem('access_token', tokens.access);
+        }
+        if (tokens?.refresh) {
+          localStorage.setItem('refresh_token', tokens.refresh);
+        }
+        if (user) {
+          localStorage.setItem('user', JSON.stringify(user));
+        }
       }
       
-      return response.data.data;
+      // إرجاع البيانات بالبنية المتوقعة
+      return {
+        tokens: tokens || {},
+        user: user || {},
+      };
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -31,7 +45,7 @@ export const logout = createAsyncThunk(
         : null;
       
       if (refreshToken) {
-        await api.post('/accounts/auth/logout/', { refresh: refreshToken });
+        await api.post('/accounts/logout/supervisor/', { refresh: refreshToken });
       }
       
       // حذف Tokens من localStorage
@@ -58,14 +72,36 @@ export const getCurrentUser = createAsyncThunk(
   'auth/getCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
-      const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-      if (userStr) {
-        return JSON.parse(userStr);
+      // جلب بيانات المشرف الكاملة من API
+      const response = await api.get('/accounts/me/supervisor/');
+      const userData = response.data.data || response.data;
+      
+      // حفظ في localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(userData));
       }
       
-      // إذا لم يكن هناك user محفوظ، جلب من API
-      const response = await api.get('/accounts/auth/me/');
-      return response.data.data;
+      return userData;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const updateProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (profileData, { rejectWithValue }) => {
+    try {
+      // تحديث بيانات المشرف في API
+      const response = await api.patch('/accounts/me/supervisor/', profileData);
+      const userData = response.data.data || response.data;
+      
+      // تحديث localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
+      return userData;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -180,6 +216,20 @@ const authSlice = createSlice({
       .addCase(getCurrentUser.rejected, (state) => {
         state.user = null;
         state.isAuthenticated = false;
+      })
+      // Update Profile
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        state.error = null;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });

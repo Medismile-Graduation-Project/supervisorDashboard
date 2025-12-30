@@ -50,15 +50,11 @@ export const updateCase = createAsyncThunk(
   }
 );
 
+// تم حذف fetchAssignmentRequests - الـ endpoint غير موجود
 export const fetchAssignmentRequests = createAsyncThunk(
   'cases/fetchAssignmentRequests',
   async (params = {}, { rejectWithValue }) => {
-    try {
-      const response = await api.get('/cases/assignment-requests/', { params });
-      return response.data.data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
-    }
+    return rejectWithValue('الـ endpoint غير متاح');
   }
 );
 
@@ -77,10 +73,23 @@ export const respondToAssignmentRequest = createAsyncThunk(
   }
 );
 
+export const fetchCaseHistory = createAsyncThunk(
+  'cases/fetchCaseHistory',
+  async (caseId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/cases/${caseId}/history/`);
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 const initialState = {
   cases: [],
   currentCase: null,
   assignmentRequests: [],
+  caseHistory: [],
   loading: false,
   error: null,
   filters: {
@@ -148,7 +157,10 @@ const casesSlice = createSlice({
       })
       // Fetch Assignment Requests
       .addCase(fetchAssignmentRequests.fulfilled, (state, action) => {
-        state.assignmentRequests = action.payload;
+        state.assignmentRequests = [];
+      })
+      .addCase(fetchAssignmentRequests.rejected, (state) => {
+        state.assignmentRequests = [];
       })
       // Respond to Assignment Request
       .addCase(respondToAssignmentRequest.fulfilled, (state, action) => {
@@ -158,11 +170,32 @@ const casesSlice = createSlice({
         if (index !== -1) {
           state.assignmentRequests[index] = action.payload;
         }
+      })
+      // Fetch Case History
+      .addCase(fetchCaseHistory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCaseHistory.fulfilled, (state, action) => {
+        state.loading = false;
+        state.caseHistory = action.payload;
+      })
+      .addCase(fetchCaseHistory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
 
 export const { setFilters, clearCurrentCase, clearError } = casesSlice.actions;
 export default casesSlice.reducer;
+
+
+
+
+
+
+
+
 
 

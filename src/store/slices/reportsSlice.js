@@ -7,19 +7,43 @@ export const fetchReports = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await api.get('/reports/', { params });
-      return response.data.data;
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
 
-export const createReport = createAsyncThunk(
-  'reports/createReport',
-  async (reportData, { rejectWithValue }) => {
+export const fetchReportById = createAsyncThunk(
+  'reports/fetchReportById',
+  async (reportId, { rejectWithValue }) => {
     try {
-      const response = await api.post('/reports/', reportData);
-      return response.data.data;
+      const response = await api.get(`/reports/${reportId}/`);
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const approveReport = createAsyncThunk(
+  'reports/approveReport',
+  async (reportId, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/reports/${reportId}/approve/`);
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const rejectReport = createAsyncThunk(
+  'reports/rejectReport',
+  async (reportId, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/reports/${reportId}/reject/`);
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -53,20 +77,79 @@ const reportsSlice = createSlice({
       })
       .addCase(fetchReports.fulfilled, (state, action) => {
         state.loading = false;
-        state.reports = action.payload;
+        state.reports = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchReports.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Create Report
-      .addCase(createReport.fulfilled, (state, action) => {
-        state.reports.unshift(action.payload);
+      // Fetch Report By ID
+      .addCase(fetchReportById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchReportById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentReport = action.payload;
+      })
+      .addCase(fetchReportById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Approve Report
+      .addCase(approveReport.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(approveReport.fulfilled, (state, action) => {
+        state.loading = false;
+        // تحديث التقرير في القائمة
+        const index = state.reports.findIndex((r) => r.id === action.payload.id);
+        if (index !== -1) {
+          state.reports[index] = action.payload;
+        }
+        // تحديث currentReport إذا كان هو نفسه
+        if (state.currentReport?.id === action.payload.id) {
+          state.currentReport = action.payload;
+        }
+      })
+      .addCase(approveReport.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Reject Report
+      .addCase(rejectReport.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(rejectReport.fulfilled, (state, action) => {
+        state.loading = false;
+        // تحديث التقرير في القائمة
+        const index = state.reports.findIndex((r) => r.id === action.payload.id);
+        if (index !== -1) {
+          state.reports[index] = action.payload;
+        }
+        // تحديث currentReport إذا كان هو نفسه
+        if (state.currentReport?.id === action.payload.id) {
+          state.currentReport = action.payload;
+        }
+      })
+      .addCase(rejectReport.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
 
 export const { clearCurrentReport, clearError } = reportsSlice.actions;
 export default reportsSlice.reducer;
+
+
+
+
+
+
+
+
 
 

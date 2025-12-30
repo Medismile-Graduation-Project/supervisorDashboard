@@ -5,17 +5,11 @@ import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import {
   fetchAppointments,
-  createAppointment,
-  updateAppointment,
 } from '@/store/slices/appointmentsSlice';
-import { fetchCases } from '@/store/slices/casesSlice';
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
   CalendarIcon,
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
   ClockIcon,
   UserIcon,
   BuildingOfficeIcon,
@@ -40,34 +34,21 @@ const statusColors = {
 
 export default function AppointmentsPage() {
   const dispatch = useAppDispatch();
-  const { appointments, loading } = useAppSelector((state) => state.appointments);
-  const { cases } = useAppSelector((state) => state.cases);
+  const { appointments = [], loading } = useAppSelector((state) => state.appointments);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [localFilters, setLocalFilters] = useState({
     status: '',
     case_id: '',
     date_from: '',
     date_to: '',
   });
-  const [formData, setFormData] = useState({
-    case: '',
-    appointment_date: '',
-    appointment_time: '',
-    location: '',
-    notes: '',
-    status: 'scheduled',
-  });
 
   useEffect(() => {
     dispatch(fetchAppointments());
-    dispatch(fetchCases());
   }, [dispatch]);
 
-  const filteredAppointments = appointments.filter((appointment) => {
+  const filteredAppointments = Array.isArray(appointments) ? appointments.filter((appointment) => {
     const matchesSearch =
       appointment.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       appointment.case?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -85,104 +66,28 @@ export default function AppointmentsPage() {
       !localFilters.date_to || appointmentDate <= new Date(localFilters.date_to);
 
     return matchesSearch && matchesStatus && matchesCase && matchesDateFrom && matchesDateTo;
-  });
+  }) : [];
 
-  const handleCreateAppointment = async () => {
-    try {
-      const result = await dispatch(createAppointment(formData));
-      if (createAppointment.fulfilled.match(result)) {
-        toast.success('تم إنشاء الموعد بنجاح');
-        setShowCreateModal(false);
-        setFormData({
-          case: '',
-          appointment_date: '',
-          appointment_time: '',
-          location: '',
-          notes: '',
-          status: 'scheduled',
-        });
-        dispatch(fetchAppointments());
-      } else {
-        toast.error(result.payload?.message || 'فشل إنشاء الموعد');
-      }
-    } catch (error) {
-      toast.error('حدث خطأ أثناء إنشاء الموعد');
-    }
-  };
-
-  const handleUpdateAppointment = async () => {
-    if (!selectedAppointment) return;
-
-    try {
-      const result = await dispatch(
-        updateAppointment({ appointmentId: selectedAppointment.id, data: formData })
-      );
-      if (updateAppointment.fulfilled.match(result)) {
-        toast.success('تم تحديث الموعد بنجاح');
-        setShowEditModal(false);
-        setSelectedAppointment(null);
-        dispatch(fetchAppointments());
-      } else {
-        toast.error(result.payload?.message || 'فشل تحديث الموعد');
-      }
-    } catch (error) {
-      toast.error('حدث خطأ أثناء تحديث الموعد');
-    }
-  };
-
-  const handleEditClick = (appointment) => {
-    setSelectedAppointment(appointment);
-    setFormData({
-      case: appointment.case || '',
-      appointment_date: appointment.appointment_date
-        ? new Date(appointment.appointment_date).toISOString().split('T')[0]
-        : '',
-      appointment_time: appointment.appointment_time || '',
-      location: appointment.location || '',
-      notes: appointment.notes || '',
-      status: appointment.status || 'scheduled',
-    });
-    setShowEditModal(true);
-  };
 
   const stats = {
-    total: appointments.length,
-    scheduled: appointments.filter((a) => a.status === 'scheduled').length,
-    confirmed: appointments.filter((a) => a.status === 'confirmed').length,
-    completed: appointments.filter((a) => a.status === 'completed').length,
-    today: appointments.filter((a) => {
+    total: Array.isArray(appointments) ? appointments.length : 0,
+    scheduled: Array.isArray(appointments) ? appointments.filter((a) => a.status === 'scheduled').length : 0,
+    confirmed: Array.isArray(appointments) ? appointments.filter((a) => a.status === 'confirmed').length : 0,
+    completed: Array.isArray(appointments) ? appointments.filter((a) => a.status === 'completed').length : 0,
+    today: Array.isArray(appointments) ? appointments.filter((a) => {
       const today = new Date().toISOString().split('T')[0];
       return a.appointment_date?.startsWith(today);
-    }).length,
+    }).length : 0,
   };
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-dark">إدارة المواعيد</h1>
-          <p className="mt-1 text-sm text-dark-lighter">
-            عرض وإدارة جميع المواعيد المرتبطة بالحالات المشرف عليها
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            setFormData({
-              case: '',
-              appointment_date: '',
-              appointment_time: '',
-              location: '',
-              notes: '',
-              status: 'scheduled',
-            });
-            setShowCreateModal(true);
-          }}
-          className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
-        >
-          <PlusIcon className="h-5 w-5" />
-          موعد جديد
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold text-dark">إدارة المواعيد</h1>
+        <p className="mt-1 text-sm text-dark-lighter">
+          عرض جميع المواعيد المرتبطة بالحالات المشرف عليها
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -299,11 +204,14 @@ export default function AppointmentsPage() {
                 className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               >
                 <option value="">جميع الحالات</option>
-                {cases.map((caseItem) => (
-                  <option key={caseItem.id} value={caseItem.id}>
-                    {caseItem.title}
-                  </option>
-                ))}
+                {Array.isArray(appointments) && Array.from(new Set(appointments.map(a => a.case).filter(Boolean))).map((caseId) => {
+                  const appointment = appointments.find(a => a.case === caseId);
+                  return (
+                    <option key={caseId} value={caseId}>
+                      {appointment?.case?.title || `الحالة ${caseId}`}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div>
@@ -346,7 +254,7 @@ export default function AppointmentsPage() {
             <p className="mt-1 text-sm text-dark-lighter">
               {searchTerm || localFilters.status || localFilters.case_id
                 ? 'لا توجد مواعيد تطابق معايير البحث'
-                : 'لم يتم إنشاء أي مواعيد بعد'}
+                : 'لا توجد مواعيد'}
             </p>
           </div>
         ) : (
@@ -405,256 +313,21 @@ export default function AppointmentsPage() {
                       </p>
                     )}
                   </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEditClick(appointment)}
-                      className="flex items-center gap-2 rounded-lg border border-dark-lighter bg-light px-3 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                      تعديل
-                    </button>
-                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-lg bg-light p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-dark mb-4">إنشاء موعد جديد</h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">
-                  الحالة السريرية <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.case}
-                  onChange={(e) => setFormData({ ...formData, case: e.target.value })}
-                  required
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                >
-                  <option value="">اختر الحالة</option>
-                  {cases.map((caseItem) => (
-                    <option key={caseItem.id} value={caseItem.id}>
-                      {caseItem.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-dark mb-2">
-                    تاريخ الموعد <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.appointment_date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, appointment_date: e.target.value })
-                    }
-                    required
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-dark mb-2">وقت الموعد</label>
-                  <input
-                    type="time"
-                    value={formData.appointment_time}
-                    onChange={(e) =>
-                      setFormData({ ...formData, appointment_time: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">الموقع</label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="مثال: عيادة الأسنان - الطابق الثاني"
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">الحالة</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                >
-                  {Object.entries(statusLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">ملاحظات</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={4}
-                  placeholder="أضف ملاحظات إضافية..."
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleCreateAppointment}
-                className="flex-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
-              >
-                إنشاء
-              </button>
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setFormData({
-                    case: '',
-                    appointment_date: '',
-                    appointment_time: '',
-                    location: '',
-                    notes: '',
-                    status: 'scheduled',
-                  });
-                }}
-                className="flex-1 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {showEditModal && selectedAppointment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-lg bg-light p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-dark mb-4">تعديل الموعد</h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">
-                  الحالة السريرية <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.case}
-                  onChange={(e) => setFormData({ ...formData, case: e.target.value })}
-                  required
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                >
-                  <option value="">اختر الحالة</option>
-                  {cases.map((caseItem) => (
-                    <option key={caseItem.id} value={caseItem.id}>
-                      {caseItem.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-dark mb-2">
-                    تاريخ الموعد <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.appointment_date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, appointment_date: e.target.value })
-                    }
-                    required
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-dark mb-2">وقت الموعد</label>
-                  <input
-                    type="time"
-                    value={formData.appointment_time}
-                    onChange={(e) =>
-                      setFormData({ ...formData, appointment_time: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">الموقع</label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="مثال: عيادة الأسنان - الطابق الثاني"
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">الحالة</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                >
-                  {Object.entries(statusLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">ملاحظات</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={4}
-                  placeholder="أضف ملاحظات إضافية..."
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleUpdateAppointment}
-                className="flex-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
-              >
-                حفظ التغييرات
-              </button>
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setSelectedAppointment(null);
-                }}
-                className="flex-1 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+
+
+
+
+
+
+
+
 

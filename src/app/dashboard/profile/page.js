@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
-import { getCurrentUser } from '@/store/slices/authSlice';
+import { getCurrentUser, updateProfile } from '@/store/slices/authSlice';
 import {
   UserIcon,
   EnvelopeIcon,
@@ -13,7 +13,7 @@ import {
   KeyIcon,
   PencilIcon,
   CheckIcon,
-  XIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -22,12 +22,12 @@ export default function ProfilePage() {
   const { user, loading } = useAppSelector((state) => state.auth);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
     email: '',
-    phone: '',
-    bio: '',
+    phone_number: '',
+    address: '',
     department: '',
+    position: '',
+    license_number: '',
   });
   const [passwordData, setPasswordData] = useState({
     current_password: '',
@@ -41,23 +41,28 @@ export default function ProfilePage() {
       dispatch(getCurrentUser());
     } else {
       setFormData({
-        first_name: user.first_name || '',
-        last_name: user.last_name || '',
         email: user.email || '',
-        phone: user.phone || '',
-        bio: user.bio || '',
+        phone_number: user.phone_number || '',
+        address: user.address || '',
         department: user.department || '',
+        position: user.position || '',
+        license_number: user.license_number || '',
       });
     }
   }, [user, dispatch]);
 
   const handleUpdateProfile = async () => {
     try {
-      // هنا يمكن إضافة API call لتحديث الملف الشخصي
-      // const result = await dispatch(updateProfile(formData));
-      toast.success('تم تحديث الملف الشخصي بنجاح');
-      setIsEditing(false);
-      dispatch(getCurrentUser());
+      const result = await dispatch(updateProfile(formData));
+      if (updateProfile.fulfilled.match(result)) {
+        toast.success('تم تحديث الملف الشخصي بنجاح');
+        setIsEditing(false);
+      } else {
+        const errorMessage = result.payload?.message || 
+                           result.payload?.error || 
+                           'حدث خطأ أثناء تحديث الملف الشخصي';
+        toast.error(errorMessage);
+      }
     } catch (error) {
       toast.error('حدث خطأ أثناء تحديث الملف الشخصي');
     }
@@ -123,19 +128,31 @@ export default function ProfilePage() {
         <div className="lg:col-span-1">
           <div className="rounded-lg bg-light border border-light-gray p-6">
             <div className="text-center">
-              <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-sky-600 text-3xl font-bold text-white shadow-lg">
-                {user.first_name?.[0] || user.username?.[0]?.toUpperCase() || 'U'}
-              </div>
+              {user.profile_picture ? (
+                <img
+                  src={user.profile_picture}
+                  alt="Profile"
+                  className="mx-auto h-24 w-24 rounded-full object-cover shadow-lg"
+                />
+              ) : (
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-sky-600 text-3xl font-bold text-white shadow-lg">
+                  {user.email?.[0]?.toUpperCase() || 'U'}
+                </div>
+              )}
               <h2 className="mt-4 text-xl font-bold text-dark">
-                {user.first_name && user.last_name
-                  ? `${user.first_name} ${user.last_name}`
-                  : user.username || 'مشرف'}
+                {user.email?.split('@')[0] || 'مشرف'}
               </h2>
               <p className="mt-1 text-sm text-dark-lighter">
                 {user.role === 'supervisor' ? 'مشرف' : user.role || 'مستخدم'}
               </p>
+              {user.university_name && (
+                <p className="mt-2 text-sm text-dark-lighter">{user.university_name}</p>
+              )}
               {user.department && (
-                <p className="mt-2 text-sm text-dark-lighter">{user.department}</p>
+                <p className="mt-1 text-sm text-dark-lighter">{user.department}</p>
+              )}
+              {user.position && (
+                <p className="mt-1 text-sm text-dark-lighter">{user.position}</p>
               )}
             </div>
 
@@ -145,11 +162,18 @@ export default function ProfilePage() {
                 <span className="text-dark-lighter">البريد الإلكتروني:</span>
                 <span className="font-medium text-dark">{user.email || 'غير محدد'}</span>
               </div>
-              {user.phone && (
+              {user.phone_number && (
                 <div className="flex items-center gap-3 text-sm">
                   <PhoneIcon className="h-5 w-5 text-dark-lighter" />
                   <span className="text-dark-lighter">الهاتف:</span>
-                  <span className="font-medium text-dark">{user.phone}</span>
+                  <span className="font-medium text-dark">{user.phone_number}</span>
+                </div>
+              )}
+              {user.university_name && (
+                <div className="flex items-center gap-3 text-sm">
+                  <BuildingOfficeIcon className="h-5 w-5 text-dark-lighter" />
+                  <span className="text-dark-lighter">الجامعة:</span>
+                  <span className="font-medium text-dark">{user.university_name}</span>
                 </div>
               )}
               {user.created_at && (
@@ -188,35 +212,6 @@ export default function ProfilePage() {
 
             {isEditing ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-dark mb-2">
-                      الاسم الأول
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.first_name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, first_name: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-dark mb-2">
-                      اسم العائلة
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.last_name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, last_name: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                    />
-                  </div>
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-dark mb-2">
                     البريد الإلكتروني
@@ -233,8 +228,18 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-dark mb-2">رقم الهاتف</label>
                   <input
                     type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    value={formData.phone_number}
+                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-dark mb-2">العنوان</label>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
                 </div>
@@ -250,13 +255,22 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-2">نبذة</label>
-                  <textarea
-                    value={formData.bio}
-                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    rows={4}
+                  <label className="block text-sm font-medium text-dark mb-2">المنصب</label>
+                  <input
+                    type="text"
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                     className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                    placeholder="اكتب نبذة عنك..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-dark mb-2">رقم الرخصة</label>
+                  <input
+                    type="text"
+                    value={formData.license_number}
+                    onChange={(e) => setFormData({ ...formData, license_number: e.target.value })}
+                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
                 </div>
 
@@ -272,42 +286,23 @@ export default function ProfilePage() {
                     onClick={() => {
                       setIsEditing(false);
                       setFormData({
-                        first_name: user.first_name || '',
-                        last_name: user.last_name || '',
                         email: user.email || '',
-                        phone: user.phone || '',
-                        bio: user.bio || '',
+                        phone_number: user.phone_number || '',
+                        address: user.address || '',
                         department: user.department || '',
+                        position: user.position || '',
+                        license_number: user.license_number || '',
                       });
                     }}
                     className="flex items-center gap-2 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
                   >
-                    <XIcon className="h-5 w-5" />
+                    <XMarkIcon className="h-5 w-5" />
                     إلغاء
                   </button>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-dark-lighter mb-1">
-                      الاسم الأول
-                    </label>
-                    <p className="text-sm font-medium text-dark">
-                      {user.first_name || 'غير محدد'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-dark-lighter mb-1">
-                      اسم العائلة
-                    </label>
-                    <p className="text-sm font-medium text-dark">
-                      {user.last_name || 'غير محدد'}
-                    </p>
-                  </div>
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-dark-lighter mb-1">
                     البريد الإلكتروني
@@ -315,12 +310,30 @@ export default function ProfilePage() {
                   <p className="text-sm font-medium text-dark">{user.email || 'غير محدد'}</p>
                 </div>
 
-                {user.phone && (
+                {user.phone_number && (
                   <div>
                     <label className="block text-sm font-medium text-dark-lighter mb-1">
                       رقم الهاتف
                     </label>
-                    <p className="text-sm font-medium text-dark">{user.phone}</p>
+                    <p className="text-sm font-medium text-dark">{user.phone_number}</p>
+                  </div>
+                )}
+
+                {user.address && (
+                  <div>
+                    <label className="block text-sm font-medium text-dark-lighter mb-1">
+                      العنوان
+                    </label>
+                    <p className="text-sm font-medium text-dark">{user.address}</p>
+                  </div>
+                )}
+
+                {user.university_name && (
+                  <div>
+                    <label className="block text-sm font-medium text-dark-lighter mb-1">
+                      الجامعة
+                    </label>
+                    <p className="text-sm font-medium text-dark">{user.university_name}</p>
                   </div>
                 )}
 
@@ -333,12 +346,21 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {user.bio && (
+                {user.position && (
                   <div>
                     <label className="block text-sm font-medium text-dark-lighter mb-1">
-                      نبذة
+                      المنصب
                     </label>
-                    <p className="text-sm text-dark whitespace-pre-wrap">{user.bio}</p>
+                    <p className="text-sm font-medium text-dark">{user.position}</p>
+                  </div>
+                )}
+
+                {user.license_number && (
+                  <div>
+                    <label className="block text-sm font-medium text-dark-lighter mb-1">
+                      رقم الرخصة
+                    </label>
+                    <p className="text-sm font-medium text-dark">{user.license_number}</p>
                   </div>
                 )}
               </div>
@@ -459,4 +481,9 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+
+
+
+
 

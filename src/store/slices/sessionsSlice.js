@@ -14,15 +14,11 @@ export const fetchSessions = createAsyncThunk(
   }
 );
 
+// تم حذف fetchSessionsNeedingReview - الـ endpoint غير موجود
 export const fetchSessionsNeedingReview = createAsyncThunk(
   'sessions/fetchSessionsNeedingReview',
   async (params = {}, { rejectWithValue }) => {
-    try {
-      const response = await api.get('/cases/sessions/needing-review/', { params });
-      return response.data.data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
-    }
+    return rejectWithValue('الـ endpoint غير متاح');
   }
 );
 
@@ -35,6 +31,18 @@ export const reviewSession = createAsyncThunk(
         supervisor_feedback,
       });
       return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const fetchSessionById = createAsyncThunk(
+  'sessions/fetchSessionById',
+  async (sessionId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/case-sessions/${sessionId}/`);
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -77,7 +85,10 @@ const sessionsSlice = createSlice({
       })
       // Fetch Sessions Needing Review
       .addCase(fetchSessionsNeedingReview.fulfilled, (state, action) => {
-        state.sessionsNeedingReview = action.payload;
+        state.sessionsNeedingReview = [];
+      })
+      .addCase(fetchSessionsNeedingReview.rejected, (state) => {
+        state.sessionsNeedingReview = [];
       })
       // Review Session
       .addCase(reviewSession.fulfilled, (state, action) => {
@@ -89,11 +100,32 @@ const sessionsSlice = createSlice({
         state.sessionsNeedingReview = state.sessionsNeedingReview.filter(
           (s) => s.id !== action.payload.id
         );
+      })
+      // Fetch Session By ID
+      .addCase(fetchSessionById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchSessionById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentSession = action.payload;
+      })
+      .addCase(fetchSessionById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
 
 export const { clearCurrentSession, clearError } = sessionsSlice.actions;
 export default sessionsSlice.reducer;
+
+
+
+
+
+
+
+
 
 

@@ -48,8 +48,8 @@ const statusColors = {
 export default function CasesPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { cases, loading, filters } = useAppSelector((state) => state.cases);
-  const { assignmentRequests } = useAppSelector((state) => state.cases);
+  const { cases = [], loading, filters } = useAppSelector((state) => state.cases);
+  const { assignmentRequests = [] } = useAppSelector((state) => state.cases);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [localFilters, setLocalFilters] = useState({
@@ -66,7 +66,7 @@ export default function CasesPage() {
     dispatch(setFilters(localFilters));
   }, [localFilters, dispatch]);
 
-  const filteredCases = cases.filter((caseItem) => {
+  const filteredCases = Array.isArray(cases) ? cases.filter((caseItem) => {
     const matchesSearch =
       caseItem.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       caseItem.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -77,11 +77,11 @@ export default function CasesPage() {
     const matchesPriority = !localFilters.priority || caseItem.priority === localFilters.priority;
 
     return matchesSearch && matchesStatus && matchesPriority;
-  });
+  }) : [];
 
-  const pendingAssignmentsCount = assignmentRequests.filter(
-    (r) => r.status === 'pending'
-  ).length;
+  const pendingAssignmentsCount = Array.isArray(assignmentRequests) 
+    ? assignmentRequests.filter((r) => r.status === 'pending').length 
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -282,9 +282,11 @@ export default function CasesPage() {
                     {pendingAssignmentsCount > 0 &&
                       caseItem.status === 'pending_assignment' && (
                         <span className="rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
-                          {assignmentRequests.filter(
-                            (r) => r.case === caseItem.id && r.status === 'pending'
-                          ).length}{' '}
+                          {Array.isArray(assignmentRequests) 
+                            ? assignmentRequests.filter(
+                                (r) => r.case === caseItem.id && r.status === 'pending'
+                              ).length 
+                            : 0}{' '}
                           طلب إسناد
                         </span>
                       )}
@@ -298,5 +300,13 @@ export default function CasesPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
 
 

@@ -17,10 +17,10 @@ import {
 
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
-  const { cases, assignmentRequests } = useAppSelector((state) => state.cases);
-  const { sessionsNeedingReview } = useAppSelector((state) => state.sessions);
-  const { pendingContent } = useAppSelector((state) => state.content);
-  const { notifications, unreadCount } = useAppSelector((state) => state.notifications);
+  const { cases = [], assignmentRequests = [] } = useAppSelector((state) => state.cases);
+  const { sessionsNeedingReview = [] } = useAppSelector((state) => state.sessions);
+  const { pendingContent = [] } = useAppSelector((state) => state.content);
+  const { notifications = [], unreadCount = 0 } = useAppSelector((state) => state.notifications);
 
   useEffect(() => {
     // جلب البيانات عند تحميل الصفحة
@@ -35,42 +35,48 @@ export default function DashboardPage() {
   const stats = [
     {
       name: 'الحالات المشرف عليها',
-      value: cases.length,
+      value: Array.isArray(cases) ? cases.length : 0,
       icon: FolderIcon,
       color: 'bg-sky-500',
-      href: '/cases',
+      href: '/dashboard/cases',
     },
     {
       name: 'طلبات الإسناد المعلقة',
-      value: assignmentRequests.filter((r) => r.status === 'pending').length,
+      value: Array.isArray(assignmentRequests) 
+        ? assignmentRequests.filter((r) => r.status === 'pending').length 
+        : 0,
       icon: DocumentTextIcon,
       color: 'bg-yellow-500',
-      href: '/cases?tab=assignments',
+      href: '/dashboard/cases?tab=assignments',
     },
     {
       name: 'جلسات تحتاج مراجعة',
-      value: sessionsNeedingReview.length,
+      value: Array.isArray(sessionsNeedingReview) ? sessionsNeedingReview.length : 0,
       icon: ClipboardDocumentCheckIcon,
       color: 'bg-orange-500',
-      href: '/sessions?status=needs_review',
+      href: '/dashboard/sessions?status=needs_review',
     },
     {
       name: 'محتوى معلق للموافقة',
-      value: pendingContent.length,
+      value: Array.isArray(pendingContent) ? pendingContent.length : 0,
       icon: ChatBubbleLeftRightIcon,
       color: 'bg-purple-500',
-      href: '/content?status=pending',
+      href: '/dashboard/content?status=pending',
     },
   ];
 
   // توزيع الحالات حسب الحالة
   const casesByStatus = {
-    new: cases.filter((c) => c.status === 'new').length,
-    pending_assignment: cases.filter((c) => c.status === 'pending_assignment').length,
-    assigned: cases.filter((c) => c.status === 'assigned').length,
-    in_progress: cases.filter((c) => c.status === 'in_progress').length,
-    completed: cases.filter((c) => c.status === 'completed').length,
-    closed: cases.filter((c) => c.status === 'closed').length,
+    new: Array.isArray(cases) ? cases.filter((c) => c.status === 'new').length : 0,
+    pending_assignment: Array.isArray(cases) 
+      ? cases.filter((c) => c.status === 'pending_assignment').length 
+      : 0,
+    assigned: Array.isArray(cases) ? cases.filter((c) => c.status === 'assigned').length : 0,
+    in_progress: Array.isArray(cases) 
+      ? cases.filter((c) => c.status === 'in_progress').length 
+      : 0,
+    completed: Array.isArray(cases) ? cases.filter((c) => c.status === 'completed').length : 0,
+    closed: Array.isArray(cases) ? cases.filter((c) => c.status === 'closed').length : 0,
   };
 
   return (
@@ -136,7 +142,7 @@ export default function DashboardPage() {
         <div className="rounded-lg bg-light border border-light-gray p-6">
           <h2 className="text-lg font-semibold text-dark mb-4">الإشعارات الحديثة</h2>
           <div className="space-y-3">
-            {notifications.slice(0, 5).map((notification) => (
+            {Array.isArray(notifications) && notifications.slice(0, 5).map((notification) => (
               <div
                 key={notification.id}
                 className={`flex items-start gap-3 p-3 rounded-lg ${

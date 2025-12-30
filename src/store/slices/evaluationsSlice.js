@@ -7,7 +7,7 @@ export const fetchEvaluations = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await api.get('/evaluations/', { params });
-      return response.data.data;
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -16,10 +16,14 @@ export const fetchEvaluations = createAsyncThunk(
 
 export const createEvaluation = createAsyncThunk(
   'evaluations/createEvaluation',
-  async (evaluationData, { rejectWithValue }) => {
+  async ({ score, target_type, student_id }, { rejectWithValue }) => {
     try {
-      const response = await api.post('/evaluations/', evaluationData);
-      return response.data.data;
+      const response = await api.post('/evaluations/', {
+        score,
+        target_type,
+        student_id,
+      });
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -31,7 +35,7 @@ export const updateEvaluation = createAsyncThunk(
   async ({ evaluationId, data }, { rejectWithValue }) => {
     try {
       const response = await api.patch(`/evaluations/${evaluationId}/`, data);
-      return response.data.data;
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -55,7 +59,19 @@ export const finalizeEvaluation = createAsyncThunk(
   async (evaluationId, { rejectWithValue }) => {
     try {
       const response = await api.post(`/evaluations/${evaluationId}/finalize/`);
-      return response.data.data;
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const fetchStudentStatistics = createAsyncThunk(
+  'evaluations/fetchStudentStatistics',
+  async (studentId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/evaluations/students/${studentId}/statistics/`);
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -65,6 +81,7 @@ export const finalizeEvaluation = createAsyncThunk(
 const initialState = {
   evaluations: [],
   currentEvaluation: null,
+  studentStatistics: null,
   loading: false,
   error: null,
 };
@@ -89,7 +106,7 @@ const evaluationsSlice = createSlice({
       })
       .addCase(fetchEvaluations.fulfilled, (state, action) => {
         state.loading = false;
-        state.evaluations = action.payload;
+        state.evaluations = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchEvaluations.rejected, (state, action) => {
         state.loading = false;
@@ -119,11 +136,32 @@ const evaluationsSlice = createSlice({
         if (index !== -1) {
           state.evaluations[index] = action.payload;
         }
+      })
+      // Fetch Student Statistics
+      .addCase(fetchStudentStatistics.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchStudentStatistics.fulfilled, (state, action) => {
+        state.loading = false;
+        state.studentStatistics = action.payload;
+      })
+      .addCase(fetchStudentStatistics.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
 
 export const { clearCurrentEvaluation, clearError } = evaluationsSlice.actions;
 export default evaluationsSlice.reducer;
+
+
+
+
+
+
+
+
 
 

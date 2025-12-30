@@ -7,8 +7,8 @@ import {
   fetchEvaluations,
   createEvaluation,
   updateEvaluation,
-  submitEvaluation,
   finalizeEvaluation,
+  fetchStudentStatistics,
 } from '@/store/slices/evaluationsSlice';
 import { fetchCases } from '@/store/slices/casesSlice';
 import {
@@ -33,6 +33,7 @@ const statusLabels = {
   approved: 'موافق عليها',
   rejected: 'مرفوضة',
   finalized: 'نهائية',
+  final: 'نهائي',
 };
 
 const statusColors = {
@@ -42,6 +43,7 @@ const statusColors = {
   approved: 'bg-green-100 text-green-800',
   rejected: 'bg-red-100 text-red-800',
   finalized: 'bg-sky-100 text-sky-800',
+  final: 'bg-sky-100 text-sky-800',
 };
 
 const typeLabels = {
@@ -54,8 +56,10 @@ const typeLabels = {
 
 export default function EvaluationsPage() {
   const dispatch = useAppDispatch();
-  const { evaluations, loading } = useAppSelector((state) => state.evaluations);
-  const { cases } = useAppSelector((state) => state.cases);
+  const { evaluations = [], loading, studentStatistics } = useAppSelector((state) => state.evaluations);
+  const { cases = [] } = useAppSelector((state) => state.cases);
+  const [showStatisticsModal, setShowStatisticsModal] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -67,14 +71,9 @@ export default function EvaluationsPage() {
     case_id: '',
   });
   const [formData, setFormData] = useState({
-    case: '',
-    student: '',
-    evaluation_type: 'clinical',
-    title: '',
-    description: '',
-    criteria: '',
-    max_score: 100,
-    status: 'draft',
+    student_id: '',
+    target_type: '',
+    score: '',
   });
 
   useEffect(() => {
@@ -82,7 +81,15 @@ export default function EvaluationsPage() {
     dispatch(fetchCases());
   }, [dispatch]);
 
-  const filteredEvaluations = evaluations.filter((evaluation) => {
+  // جلب قائمة الطلاب من الحالات
+  const students = Array.isArray(cases) ? cases.reduce((acc, caseItem) => {
+    if (caseItem.student && !acc.find(s => s.id === caseItem.student.id)) {
+      acc.push(caseItem.student);
+    }
+    return acc;
+  }, []) : [];
+
+  const filteredEvaluations = Array.isArray(evaluations) ? evaluations.filter((evaluation) => {
     const matchesSearch =
       evaluation.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       evaluation.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -95,27 +102,34 @@ export default function EvaluationsPage() {
     const matchesCase = !localFilters.case_id || evaluation.case === localFilters.case_id;
 
     return matchesSearch && matchesStatus && matchesType && matchesCase;
-  });
+  }) : [];
 
   const handleCreateEvaluation = async () => {
+    if (!formData.student_id || !formData.target_type || !formData.score) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
     try {
-      const result = await dispatch(createEvaluation(formData));
+      const result = await dispatch(createEvaluation({
+        student_id: formData.student_id,
+        target_type: formData.target_type,
+        score: parseFloat(formData.score),
+      }));
       if (createEvaluation.fulfilled.match(result)) {
         toast.success('تم إنشاء التقييم بنجاح');
         setShowCreateModal(false);
         setFormData({
-          case: '',
-          student: '',
-          evaluation_type: 'clinical',
-          title: '',
-          description: '',
-          criteria: '',
-          max_score: 100,
-          status: 'draft',
+          student_id: '',
+          target_type: '',
+          score: '',
         });
         dispatch(fetchEvaluations());
       } else {
-        toast.error(result.payload?.message || 'فشل إنشاء التقييم');
+        const errorMessage = result.payload?.message || 
+                           result.payload?.error || 
+                           'فشل إنشاء التقييم';
+        toast.error(errorMessage);
       }
     } catch (error) {
       toast.error('حدث خطأ أثناء إنشاء التقييم');
@@ -125,9 +139,21 @@ export default function EvaluationsPage() {
   const handleUpdateEvaluation = async () => {
     if (!selectedEvaluation) return;
 
+    // منع التعديل إذا كان التقييم نهائي
+    if (selectedEvaluation.status === 'final' || selectedEvaluation.status === 'finalized') {
+      toast.error('لا يمكن تعديل تقييم نهائي');
+      return;
+    }
+
     try {
       const result = await dispatch(
-        updateEvaluation({ evaluationId: selectedEvaluation.id, data: formData })
+        updateEvaluation({ 
+          evaluationId: selectedEvaluation.id, 
+          data: {
+            score: parseFloat(formData.score),
+            target_type: formData.target_type,
+          }
+        })
       );
       if (updateEvaluation.fulfilled.match(result)) {
         toast.success('تم تحديث التقييم بنجاح');
@@ -135,50 +161,54 @@ export default function EvaluationsPage() {
         setSelectedEvaluation(null);
         dispatch(fetchEvaluations());
       } else {
-        toast.error(result.payload?.message || 'فشل تحديث التقييم');
+        const errorMessage = result.payload?.message || 
+                           result.payload?.error || 
+                           'فشل تحديث التقييم';
+        toast.error(errorMessage);
       }
     } catch (error) {
       toast.error('حدث خطأ أثناء تحديث التقييم');
     }
   };
 
-  const handleSubmitEvaluation = async (evaluationId) => {
-    try {
-      const result = await dispatch(submitEvaluation(evaluationId));
-      if (submitEvaluation.fulfilled.match(result)) {
-        toast.success('تم إرسال التقييم بنجاح');
-        dispatch(fetchEvaluations());
-      } else {
-        toast.error(result.payload?.message || 'فشل إرسال التقييم');
-      }
-    } catch (error) {
-      toast.error('حدث خطأ أثناء إرسال التقييم');
-    }
-  };
-
   const handleFinalizeEvaluation = async (evaluationId) => {
-    if (!confirm('هل أنت متأكد من إنهاء هذا التقييم؟ لا يمكن التراجع عن هذا الإجراء.')) {
+    if (!confirm('هل أنت متأكد من اعتماد هذا التقييم؟ لا يمكن التعديل بعد ذلك.')) {
       return;
     }
 
     try {
       const result = await dispatch(finalizeEvaluation(evaluationId));
       if (finalizeEvaluation.fulfilled.match(result)) {
-        toast.success('تم إنهاء التقييم بنجاح');
+        toast.success('تم اعتماد التقييم بنجاح');
         dispatch(fetchEvaluations());
       } else {
-        toast.error(result.payload?.message || 'فشل إنهاء التقييم');
+        const errorMessage = result.payload?.message || 
+                           result.payload?.error || 
+                           'فشل اعتماد التقييم';
+        toast.error(errorMessage);
       }
     } catch (error) {
-      toast.error('حدث خطأ أثناء إنهاء التقييم');
+      toast.error('حدث خطأ أثناء اعتماد التقييم');
     }
   };
 
+  const handleViewStatistics = async (studentId) => {
+    setSelectedStudentId(studentId);
+    setShowStatisticsModal(true);
+    await dispatch(fetchStudentStatistics(studentId));
+  };
+
   const handleEditClick = (evaluation) => {
+    // منع التعديل إذا كان التقييم نهائي
+    if (evaluation.status === 'final' || evaluation.status === 'finalized') {
+      toast.error('لا يمكن تعديل تقييم نهائي');
+      return;
+    }
     setSelectedEvaluation(evaluation);
     setFormData({
-      case: evaluation.case || '',
-      student: evaluation.student || '',
+      student_id: evaluation.student_id || evaluation.student?.id || '',
+      target_type: evaluation.target_type || '',
+      score: evaluation.score || '',
       evaluation_type: evaluation.evaluation_type || 'clinical',
       title: evaluation.title || '',
       description: evaluation.description || '',
@@ -460,40 +490,32 @@ export default function EvaluationsPage() {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    {evaluation.status === 'draft' && (
-                      <>
-                        <button
-                          onClick={() => handleEditClick(evaluation)}
-                          className="flex items-center gap-2 rounded-lg border border-dark-lighter bg-light px-3 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                          تعديل
-                        </button>
-                        <button
-                          onClick={() => handleSubmitEvaluation(evaluation.id)}
-                          className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-                        >
-                          <CheckCircleIcon className="h-4 w-4" />
-                          إرسال
-                        </button>
-                      </>
+                    {(evaluation.status === 'draft' || (evaluation.status !== 'final' && evaluation.status !== 'finalized')) && (
+                      <button
+                        onClick={() => handleEditClick(evaluation)}
+                        disabled={evaluation.status === 'final' || evaluation.status === 'finalized'}
+                        className="flex items-center gap-2 rounded-lg border border-dark-lighter bg-light px-3 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                        تعديل
+                      </button>
                     )}
-                    {evaluation.status === 'approved' && (
+                    {evaluation.status !== 'final' && evaluation.status !== 'finalized' && (
                       <button
                         onClick={() => handleFinalizeEvaluation(evaluation.id)}
                         className="flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700 transition-colors"
                       >
                         <CheckCircleIcon className="h-4 w-4" />
-                        إنهاء
+                        اعتماد
                       </button>
                     )}
-                    {evaluation.status !== 'draft' && evaluation.status !== 'finalized' && (
+                    {evaluation.student_id && (
                       <button
-                        onClick={() => handleEditClick(evaluation)}
-                        className="flex items-center gap-2 rounded-lg border border-dark-lighter bg-light px-3 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
+                        onClick={() => handleViewStatistics(evaluation.student_id || evaluation.student?.id)}
+                        className="flex items-center gap-2 rounded-lg border border-sky-500 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 hover:bg-sky-100 transition-colors"
                       >
-                        <PencilIcon className="h-4 w-4" />
-                        عرض
+                        <AcademicCapIcon className="h-4 w-4" />
+                        إحصائيات
                       </button>
                     )}
                   </div>
@@ -513,88 +535,49 @@ export default function EvaluationsPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-dark mb-2">
-                  العنوان <span className="text-red-500">*</span>
+                  الطالب <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.student_id}
+                  onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
+                  required
+                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                >
+                  <option value="">اختر الطالب</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.first_name} {student.last_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-dark mb-2">
+                  نوع الهدف <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  value={formData.target_type}
+                  onChange={(e) => setFormData({ ...formData, target_type: e.target.value })}
                   required
-                  placeholder="مثال: تقييم الأداء السريري - الفصل الأول"
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-dark mb-2">
-                    الحالة السريرية
-                  </label>
-                  <select
-                    value={formData.case}
-                    onChange={(e) => setFormData({ ...formData, case: e.target.value })}
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  >
-                    <option value="">اختر الحالة (اختياري)</option>
-                    {cases.map((caseItem) => (
-                      <option key={caseItem.id} value={caseItem.id}>
-                        {caseItem.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-dark mb-2">نوع التقييم</label>
-                  <select
-                    value={formData.evaluation_type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, evaluation_type: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  >
-                    {Object.entries(typeLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">الوصف</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={4}
-                  placeholder="وصف التقييم..."
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">معايير التقييم</label>
-                <textarea
-                  value={formData.criteria}
-                  onChange={(e) => setFormData({ ...formData, criteria: e.target.value })}
-                  rows={4}
-                  placeholder="اذكر معايير التقييم..."
+                  placeholder="مثال: clinical_skill, presentation, etc."
                   className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-dark mb-2">
-                  النقاط العظمى
+                  النقاط <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
-                  value={formData.max_score}
-                  onChange={(e) =>
-                    setFormData({ ...formData, max_score: parseInt(e.target.value) || 100 })
-                  }
-                  min="1"
-                  max="1000"
+                  value={formData.score}
+                  onChange={(e) => setFormData({ ...formData, score: e.target.value })}
+                  required
+                  min="0"
+                  step="0.1"
+                  placeholder="أدخل النقاط"
                   className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
@@ -611,14 +594,9 @@ export default function EvaluationsPage() {
                 onClick={() => {
                   setShowCreateModal(false);
                   setFormData({
-                    case: '',
-                    student: '',
-                    evaluation_type: 'clinical',
-                    title: '',
-                    description: '',
-                    criteria: '',
-                    max_score: 100,
-                    status: 'draft',
+                    student_id: '',
+                    target_type: '',
+                    score: '',
                   });
                 }}
                 className="flex-1 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
@@ -636,100 +614,51 @@ export default function EvaluationsPage() {
           <div className="w-full max-w-2xl rounded-lg bg-light p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-dark mb-4">تعديل التقييم</h3>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">
-                  العنوان <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                />
+            {selectedEvaluation.status === 'final' || selectedEvaluation.status === 'finalized' ? (
+              <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+                <p className="text-sm text-red-800">لا يمكن تعديل تقييم نهائي</p>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            ) : (
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-dark mb-2">
-                    الحالة السريرية
+                    نوع الهدف <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={formData.case}
-                    onChange={(e) => setFormData({ ...formData, case: e.target.value })}
+                  <input
+                    type="text"
+                    value={formData.target_type}
+                    onChange={(e) => setFormData({ ...formData, target_type: e.target.value })}
+                    required
                     className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  >
-                    <option value="">اختر الحالة (اختياري)</option>
-                    {cases.map((caseItem) => (
-                      <option key={caseItem.id} value={caseItem.id}>
-                        {caseItem.title}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-2">نوع التقييم</label>
-                  <select
-                    value={formData.evaluation_type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, evaluation_type: e.target.value })
-                    }
+                  <label className="block text-sm font-medium text-dark mb-2">
+                    النقاط <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.score}
+                    onChange={(e) => setFormData({ ...formData, score: e.target.value })}
+                    required
+                    min="0"
+                    step="0.1"
                     className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  >
-                    {Object.entries(typeLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">الوصف</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={4}
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">معايير التقييم</label>
-                <textarea
-                  value={formData.criteria}
-                  onChange={(e) => setFormData({ ...formData, criteria: e.target.value })}
-                  rows={4}
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dark mb-2">
-                  النقاط العظمى
-                </label>
-                <input
-                  type="number"
-                  value={formData.max_score}
-                  onChange={(e) =>
-                    setFormData({ ...formData, max_score: parseInt(e.target.value) || 100 })
-                  }
-                  min="1"
-                  max="1000"
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                />
-              </div>
-            </div>
+            )}
 
             <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleUpdateEvaluation}
-                className="flex-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
-              >
-                حفظ التغييرات
-              </button>
+              {selectedEvaluation.status !== 'final' && selectedEvaluation.status !== 'finalized' && (
+                <button
+                  onClick={handleUpdateEvaluation}
+                  className="flex-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+                >
+                  حفظ التغييرات
+                </button>
+              )}
               <button
                 onClick={() => {
                   setShowEditModal(false);
@@ -737,7 +666,76 @@ export default function EvaluationsPage() {
                 }}
                 className="flex-1 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
               >
-                إلغاء
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Statistics Modal */}
+      {showStatisticsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-lg bg-light p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-dark mb-4">إحصائيات أداء الطالب</h3>
+
+            {loading ? (
+              <div className="flex items-center justify-center min-h-[200px]">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-sky-500 border-r-transparent"></div>
+                <p className="mt-4 text-sm text-dark-lighter">جاري تحميل الإحصائيات...</p>
+              </div>
+            ) : studentStatistics ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-lg bg-sky-50 border border-sky-100 p-4">
+                    <p className="text-sm font-medium text-sky-800 mb-1">متوسط النقاط</p>
+                    <p className="text-2xl font-bold text-sky-900">
+                      {studentStatistics.average_score || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-green-50 border border-green-100 p-4">
+                    <p className="text-sm font-medium text-green-800 mb-1">إجمالي التقييمات</p>
+                    <p className="text-2xl font-bold text-green-900">
+                      {studentStatistics.total_evaluations || 0}
+                    </p>
+                  </div>
+                </div>
+                {studentStatistics.evaluations && studentStatistics.evaluations.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-dark mb-2">التقييمات السابقة</p>
+                    <div className="space-y-2">
+                      {studentStatistics.evaluations.map((evaluationItem) => (
+                        <div key={evaluationItem.id} className="p-3 rounded-lg bg-light-gray border border-light">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-dark">{evaluationItem.target_type}</p>
+                              <p className="text-xs text-dark-lighter">
+                                {new Date(evaluationItem.created_at).toLocaleDateString('ar-SA')}
+                              </p>
+                            </div>
+                            <span className="text-lg font-bold text-sky-600">{evaluationItem.score}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <p className="text-dark-lighter">لا توجد إحصائيات متاحة</p>
+              </div>
+            )}
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => {
+                  setShowStatisticsModal(false);
+                  setSelectedStudentId(null);
+                }}
+                className="rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
+              >
+                إغلاق
               </button>
             </div>
           </div>
@@ -746,4 +744,12 @@ export default function EvaluationsPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
 
