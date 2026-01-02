@@ -42,7 +42,13 @@ npm start
 أنشئ ملف `.env.local` وأضف:
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_API_URL=https://medi-smile1.onrender.com/api
+```
+
+أو انسخ ملف `.env.local.example` إلى `.env.local`:
+
+```bash
+cp .env.local.example .env.local
 ```
 
 ## البنية
