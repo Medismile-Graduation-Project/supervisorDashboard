@@ -7,7 +7,7 @@ import { useAppSelector } from '@/hooks/useAppSelector';
 import { login, clearError, initializeAuth } from '@/store/slices/authSlice';
 import toast from 'react-hot-toast';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -102,77 +102,123 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-sky-50 via-light-gray to-sky-100 p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
+    <div className="flex min-h-screen items-center justify-center bg-sky-100 p-4 sm:p-6">
+      <div className="w-full max-w-md">
         {/* Card */}
-        <div className="rounded-2xl bg-light border border-light-gray shadow-2xl overflow-hidden">
+        <div className="rounded-2xl bg-white shadow-sm">
           {/* Header */}
-          <div className="bg-gradient-to-r from-sky-600 to-sky-700 px-8 py-12 text-center">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring' }}
-            >
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm mb-4">
-                <svg
-                  className="w-12 h-12 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+          <div className="px-8 py-10 text-center">
+            <div className="flex flex-col items-center">
+              {/* Logo */}
+              <div className="mb-5">
+                <div className="w-20 h-20 rounded-full border-2 border-sky-200 bg-white flex items-center justify-center overflow-hidden">
+                  <Image
+                    src="/Screenshot_٢٠٢٥٠٩٠٨-١٢٣٢٥٥.jpg"
+                    alt="MediSmile Logo"
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-cover rounded-full"
                   />
-                </svg>
+                </div>
               </div>
-              <h1 className="text-3xl font-bold text-white mb-2">MediSmile</h1>
-              <p className="text-sky-100 text-sm">لوحة تحكم المشرفين</p>
-            </motion.div>
+              {/* Brand name */}
+              <h1 className="text-lg font-bold text-dark mb-6" style={{ fontFamily: 'inherit' }}>MediSmile</h1>
+              {/* Welcome heading */}
+              <h2 className="text-3xl font-bold text-dark mb-3" style={{ fontFamily: 'inherit' }}>أهلاً بك</h2>
+              {/* Subtitle */}
+              <p className="text-sky-500 text-sm mb-6" style={{ fontFamily: 'inherit' }}>الوصول إلى رعاية الأسنان التقنية والتعليم</p>
+              
+              {/* Error Message */}
+              {error && (
+                <div className="mb-6 w-full">
+                  <p className="text-sm text-red-600 text-center" style={{ fontFamily: 'inherit' }}>
+                    {error.message || error.error || error.detail || 'حدث خطأ أثناء تسجيل الدخول'}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Form */}
-          <div className="px-8 py-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="px-8 pb-10">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email Field */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-semibold text-dark mb-2"
+              <div className="relative">
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => {
+                    setFormData({ ...formData, email: e.target.value });
+                    if (formErrors.email) {
+                      setFormErrors({ ...formErrors, email: '' });
+                    }
+                  }}
+                  className={`w-full rounded-lg border-0 ${
+                    formErrors.email
+                      ? 'bg-red-50 text-red-900'
+                      : 'bg-sky-100 text-dark'
+                  } px-4 py-3.5 pr-12 text-base placeholder-dark-lighter/50 focus:outline-none focus:ring-2 focus:ring-sky-400`}
+                  style={{ fontFamily: 'inherit' }}
+                  placeholder="البريد الإلكتروني"
+                  disabled={loading}
+                  suppressHydrationWarning
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-dark-lighter"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              {formErrors.email && (
+                <p className="text-sm text-red-600 -mt-3" style={{ fontFamily: 'inherit' }}>{formErrors.email}</p>
+              )}
+
+              {/* Password Field */}
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={formData.password}
+                  onChange={(e) => {
+                    setFormData({ ...formData, password: e.target.value });
+                    if (formErrors.password) {
+                      setFormErrors({ ...formErrors, password: '' });
+                    }
+                  }}
+                  className={`w-full rounded-lg border-0 ${
+                    formErrors.password
+                      ? 'bg-red-50 text-red-900'
+                      : 'bg-sky-100 text-dark'
+                  } px-4 py-3.5 pr-12 text-base placeholder-dark-lighter/50 focus:outline-none focus:ring-2 focus:ring-sky-400`}
+                  style={{ fontFamily: 'inherit' }}
+                  placeholder="كلمة المرور"
+                  disabled={loading}
+                  suppressHydrationWarning
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-dark-lighter hover:text-dark transition-colors focus:outline-none"
+                  tabIndex={-1}
                 >
-                  البريد الإلكتروني
-                </label>
-                <div className="relative">
-                  <input
-                    id="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => {
-                      setFormData({ ...formData, email: e.target.value });
-                      if (formErrors.email) {
-                        setFormErrors({ ...formErrors, email: '' });
-                      }
-                    }}
-                    className={`w-full rounded-lg border ${
-                      formErrors.email
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                        : 'border-dark-lighter focus:border-sky-500 focus:ring-sky-500'
-                    } bg-light px-4 py-3 pr-12 text-dark placeholder-dark-lighter focus:outline-none focus:ring-2 transition-colors`}
-                    placeholder="supervisor@university.edu"
-                    disabled={loading}
-                    suppressHydrationWarning
-                  />
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-5 w-5" />
+                  ) : (
                     <svg
-                      className="h-5 w-5 text-dark-lighter"
+                      className="h-5 w-5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -181,101 +227,22 @@ export default function LoginPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                       />
                     </svg>
-                  </div>
-                </div>
-                {formErrors.email && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
-                )}
+                  )}
+                </button>
               </div>
-
-              {/* Password Field */}
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-semibold text-dark mb-2"
-                >
-                  كلمة المرور
-                </label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={formData.password}
-                    onChange={(e) => {
-                      setFormData({ ...formData, password: e.target.value });
-                      if (formErrors.password) {
-                        setFormErrors({ ...formErrors, password: '' });
-                      }
-                    }}
-                    className={`w-full rounded-lg border ${
-                      formErrors.password
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                        : 'border-dark-lighter focus:border-sky-500 focus:ring-sky-500'
-                    } bg-light px-4 py-3 pr-12 text-dark placeholder-dark-lighter focus:outline-none focus:ring-2 transition-colors`}
-                    placeholder="••••••••"
-                    disabled={loading}
-                    suppressHydrationWarning
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 left-0 flex items-center pl-3 text-dark-lighter hover:text-dark transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? (
-                      <EyeSlashIcon className="h-5 w-5" />
-                    ) : (
-                      <EyeIcon className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
-                {formErrors.password && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
-                )}
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="rounded-lg bg-red-50 border border-red-200 p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <svg
-                      className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-red-800">
-                        {error.message || error.error || 'حدث خطأ أثناء تسجيل الدخول'}
-                      </p>
-                      {error.detail && (
-                        <p className="text-xs text-red-600 mt-1">{error.detail}</p>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
+              {formErrors.password && (
+                <p className="text-sm text-red-600 -mt-3" style={{ fontFamily: 'inherit' }}>{formErrors.password}</p>
               )}
 
               {/* Submit Button */}
-              <motion.button
+              <button
                 type="submit"
                 disabled={loading}
-                whileHover={{ scale: loading ? 1 : 1.02 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
-                className="w-full rounded-lg bg-gradient-to-r from-sky-600 to-sky-700 px-4 py-3.5 text-sm font-semibold text-white hover:from-sky-700 hover:to-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+                className="w-full rounded-lg bg-sky-400 px-4 py-3.5 text-base font-semibold text-white hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
+                style={{ fontFamily: 'inherit' }}
                 suppressHydrationWarning
               >
                 {loading ? (
@@ -300,23 +267,16 @@ export default function LoginPage() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    جاري تسجيل الدخول...
+                    <span>جاري تسجيل الدخول...</span>
                   </span>
                 ) : (
                   'تسجيل الدخول'
                 )}
-              </motion.button>
+              </button>
             </form>
-
-            {/* Footer */}
-            <div className="mt-6 text-center">
-              <p className="text-xs text-dark-lighter">
-                للمشرفين فقط - جميع الحقوق محفوظة © 2025
-              </p>
-            </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

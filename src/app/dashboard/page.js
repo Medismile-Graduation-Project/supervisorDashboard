@@ -46,21 +46,21 @@ export default function DashboardPage() {
         ? assignmentRequests.filter((r) => r.status === 'pending').length 
         : 0,
       icon: DocumentTextIcon,
-      color: 'bg-yellow-500',
+      color: 'bg-sky-400',
       href: '/dashboard/cases?tab=assignments',
     },
     {
       name: 'جلسات تحتاج مراجعة',
       value: Array.isArray(sessionsNeedingReview) ? sessionsNeedingReview.length : 0,
       icon: ClipboardDocumentCheckIcon,
-      color: 'bg-orange-500',
+      color: 'bg-sky-600',
       href: '/dashboard/sessions?status=needs_review',
     },
     {
       name: 'محتوى معلق للموافقة',
       value: Array.isArray(pendingContent) ? pendingContent.length : 0,
       icon: ChatBubbleLeftRightIcon,
-      color: 'bg-purple-500',
+      color: 'bg-sky-500',
       href: '/dashboard/content?status=pending',
     },
   ];
@@ -82,9 +82,11 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-dark">لوحة التحكم</h1>
-        <p className="mt-1 text-sm text-dark-lighter">
+      <div className="mb-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
+          لوحة التحكم
+        </h1>
+        <p className="text-sm sm:text-base text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
           نظرة عامة على الحالات والأنشطة
         </p>
       </div>
@@ -97,14 +99,18 @@ export default function DashboardPage() {
             <a
               key={stat.name}
               href={stat.href}
-              className="group relative overflow-hidden rounded-lg bg-light border border-light-gray p-6 hover:shadow-lg transition-shadow"
+              className="group relative overflow-hidden rounded-lg bg-white border border-sky-100 p-5 sm:p-6 hover:shadow-md hover:border-sky-200 transition-all duration-200"
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-dark-lighter">{stat.name}</p>
-                  <p className="mt-2 text-3xl font-bold text-dark">{stat.value}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-dark-lighter mb-2" style={{ fontFamily: 'inherit' }}>
+                    {stat.name}
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-bold text-dark" style={{ fontFamily: 'inherit' }}>
+                    {stat.value}
+                  </p>
                 </div>
-                <div className={`${stat.color} rounded-lg p-3`}>
+                <div className={`${stat.color} rounded-lg p-3 flex-shrink-0 shadow-sm`}>
                   <Icon className="h-6 w-6 text-white" />
                 </div>
               </div>
@@ -116,22 +122,33 @@ export default function DashboardPage() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Cases by Status */}
-        <div className="rounded-lg bg-light border border-light-gray p-6">
-          <h2 className="text-lg font-semibold text-dark mb-4">توزيع الحالات</h2>
-          <div className="space-y-3">
+        <div className="rounded-lg bg-white border border-sky-100 p-5 sm:p-6 shadow-sm">
+          <h2 className="text-lg sm:text-xl font-semibold text-dark mb-5" style={{ fontFamily: 'inherit' }}>
+            توزيع الحالات
+          </h2>
+          <div className="space-y-4">
             {Object.entries(casesByStatus).map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between">
-                <span className="text-sm text-dark-lighter capitalize">{status}</span>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-32 bg-light-gray rounded-full overflow-hidden">
+              <div key={status} className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-dark-lighter flex-shrink-0" style={{ fontFamily: 'inherit' }}>
+                  {status === 'new' && 'جديدة'}
+                  {status === 'pending_assignment' && 'في انتظار الإسناد'}
+                  {status === 'assigned' && 'مُسندة'}
+                  {status === 'in_progress' && 'قيد التنفيذ'}
+                  {status === 'completed' && 'مكتملة'}
+                  {status === 'closed' && 'مغلقة'}
+                </span>
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="h-2.5 flex-1 bg-sky-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-sky-500 rounded-full"
+                      className="h-full bg-sky-500 rounded-full transition-all duration-300"
                       style={{
                         width: `${cases.length > 0 ? (count / cases.length) * 100 : 0}%`,
                       }}
                     />
                   </div>
-                  <span className="text-sm font-medium text-dark w-8 text-left">{count}</span>
+                  <span className="text-sm font-semibold text-dark w-8 text-left flex-shrink-0" style={{ fontFamily: 'inherit' }}>
+                    {count}
+                  </span>
                 </div>
               </div>
             ))}
@@ -139,32 +156,49 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Activity */}
-        <div className="rounded-lg bg-light border border-light-gray p-6">
-          <h2 className="text-lg font-semibold text-dark mb-4">الإشعارات الحديثة</h2>
+        <div className="rounded-lg bg-white border border-sky-100 p-5 sm:p-6 shadow-sm">
+          <h2 className="text-lg sm:text-xl font-semibold text-dark mb-5" style={{ fontFamily: 'inherit' }}>
+            الإشعارات الحديثة
+          </h2>
           <div className="space-y-3">
-            {Array.isArray(notifications) && notifications.slice(0, 5).map((notification) => (
-              <div
-                key={notification.id}
-                className={`flex items-start gap-3 p-3 rounded-lg ${
-                  !notification.is_read ? 'bg-sky-50 border border-sky-100' : 'bg-light-gray'
-                }`}
-              >
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-dark">{notification.title}</p>
-                  <p className="text-xs text-dark-lighter mt-1">{notification.message}</p>
-                  <p className="text-xs text-dark-lighter mt-1">
-                    {new Date(notification.created_at).toLocaleDateString('ar-SA')}
-                  </p>
+            {Array.isArray(notifications) && notifications.length > 0 ? (
+              notifications.slice(0, 5).map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`flex items-start gap-3 p-3.5 rounded-lg transition-colors ${
+                    !notification.is_read 
+                      ? 'bg-sky-50 border border-sky-200' 
+                      : 'bg-light-gray border border-transparent'
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-dark mb-1.5" style={{ fontFamily: 'inherit' }}>
+                      {notification.title}
+                    </p>
+                    <p className="text-xs text-dark-lighter leading-relaxed mb-2" style={{ fontFamily: 'inherit' }}>
+                      {notification.message}
+                    </p>
+                    <p className="text-xs text-dark-lighter" style={{ fontFamily: 'inherit' }}>
+                      {new Date(notification.created_at).toLocaleDateString('ar-SA', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                  {!notification.is_read && (
+                    <div className="h-2.5 w-2.5 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
+                  )}
                 </div>
-                {!notification.is_read && (
-                  <div className="h-2 w-2 rounded-full bg-sky-500 mt-2" />
-                )}
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-sm text-dark-lighter" style={{ fontFamily: 'inherit' }}>
+                  لا توجد إشعارات
+                </p>
               </div>
-            ))}
-            {notifications.length === 0 && (
-              <p className="text-sm text-dark-lighter text-center py-4">
-                لا توجد إشعارات
-              </p>
             )}
           </div>
         </div>
