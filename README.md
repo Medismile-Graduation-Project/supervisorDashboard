@@ -39,16 +39,20 @@ npm start
 
 ## متغيرات البيئة
 
-أنشئ ملف `.env.local` وأضف:
+### للإنتاج (Render)
+
+قم بتعيين متغير البيئة في Render:
 
 ```
 NEXT_PUBLIC_API_URL=https://medi-smile1.onrender.com/api
 ```
 
-أو انسخ ملف `.env.local.example` إلى `.env.local`:
+### للتطوير المحلي (اختياري)
 
-```bash
-cp .env.local.example .env.local
+إذا كنت تريد تشغيل المشروع محلياً، أنشئ ملف `.env.local`:
+
+```
+NEXT_PUBLIC_API_URL=https://medi-smile1.onrender.com/api
 ```
 
 ## البنية

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // إنشاء instance من axios مع الإعدادات الأساسية
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://medi-smile1.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -43,7 +43,7 @@ api.interceptors.response.use(
 
         if (refreshToken) {
           const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/accounts/auth/token/refresh/`,
+            `${process.env.NEXT_PUBLIC_API_URL || 'https://medi-smile1.onrender.com/api'}/accounts/auth/token/refresh/`,
             { refresh: refreshToken }
           );
 
@@ -72,6 +72,7 @@ api.interceptors.response.use(
 );
 
 export default api;
+
 
 
 
