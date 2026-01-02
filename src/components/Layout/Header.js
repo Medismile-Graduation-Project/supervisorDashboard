@@ -21,17 +21,23 @@ export default function Header() {
   useEffect(() => {
     setMounted(true);
     // جلب الإشعارات عند تحميل المكون
-    dispatch(fetchNotifications({ limit: 5 }));
-  }, [dispatch]);
+    if (initialized && user) {
+      dispatch(fetchNotifications({ limit: 5 }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized, user]);
 
-  // تحديث الإشعارات كل 30 ثانية
+  // تحديث الإشعارات كل 30 ثانية (فقط إذا كان المستخدم مسجل دخول)
   useEffect(() => {
+    if (!initialized || !user) return;
+
     const interval = setInterval(() => {
       dispatch(fetchNotifications({ limit: 5 }));
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized, user]);
 
   const handleNotificationClick = async (notification) => {
     // تمييز الإشعار كمقروء

@@ -45,9 +45,9 @@ const statusLabels = {
 };
 
 const statusColors = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  approved: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
+  pending: 'bg-sky-200 text-sky-800',
+  approved: 'bg-sky-500 text-white',
+  rejected: 'bg-dark-lighter text-light',
 };
 
 export default function ContentPage() {
@@ -141,72 +141,86 @@ export default function ContentPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-dark">إدارة المحتوى المجتمعي</h1>
-        <p className="mt-1 text-sm text-dark-lighter">
+      <div className="mb-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
+          إدارة المحتوى المجتمعي
+        </h1>
+        <p className="text-sm sm:text-base text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
           مراجعة واعتماد/رفض المحتوى المعلق من منشورات طلابك ضمن جامعتك
         </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-lg bg-light border border-light-gray p-4">
+        <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-dark-lighter">إجمالي المعلق</p>
-              <p className="mt-1 text-2xl font-bold text-dark">{stats.total}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dark-lighter mb-1">إجمالي المعلق</p>
+              <p className="text-2xl font-bold text-dark">{stats.total}</p>
             </div>
-            <ChatBubbleLeftRightIcon className="h-8 w-8 text-sky-500" />
-          </div>
-        </div>
-        <div className="rounded-lg bg-light border border-light-gray p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-dark-lighter">منشورات</p>
-              <p className="mt-1 text-2xl font-bold text-dark">{stats.posts}</p>
-            </div>
-            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <DocumentTextIcon className="h-4 w-4 text-blue-600" />
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-lg bg-sky-100 flex items-center justify-center">
+                <ChatBubbleLeftRightIcon className="h-6 w-6 text-sky-500" />
+              </div>
             </div>
           </div>
         </div>
-        <div className="rounded-lg bg-light border border-light-gray p-4">
+        <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-dark-lighter">تعليقات</p>
-              <p className="mt-1 text-2xl font-bold text-dark">{stats.comments}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dark-lighter mb-1">منشورات</p>
+              <p className="text-2xl font-bold text-dark">{stats.posts}</p>
             </div>
-            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-              <ChatBubbleLeftRightIcon className="h-4 w-4 text-green-600" />
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-lg bg-sky-100 flex items-center justify-center">
+                <DocumentTextIcon className="h-6 w-6 text-sky-500" />
+              </div>
             </div>
           </div>
         </div>
-        <div className="rounded-lg bg-light border border-light-gray p-4">
+        <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-dark-lighter">أسئلة</p>
-              <p className="mt-1 text-2xl font-bold text-dark">{stats.questions}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dark-lighter mb-1">تعليقات</p>
+              <p className="text-2xl font-bold text-dark">{stats.comments}</p>
             </div>
-            <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center">
-              <ChatBubbleLeftRightIcon className="h-4 w-4 text-yellow-600" />
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-lg bg-sky-200 flex items-center justify-center">
+                <ChatBubbleLeftRightIcon className="h-6 w-6 text-sky-600" />
+              </div>
             </div>
           </div>
         </div>
-        <div className="rounded-lg bg-light border border-light-gray p-4">
+        <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-dark-lighter">وسائط</p>
-              <p className="mt-1 text-2xl font-bold text-dark">{stats.media}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dark-lighter mb-1">أسئلة</p>
+              <p className="text-2xl font-bold text-dark">{stats.questions}</p>
             </div>
-            <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-              <PhotoIcon className="h-4 w-4 text-purple-600" />
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-lg bg-sky-300 flex items-center justify-center">
+                <ChatBubbleLeftRightIcon className="h-6 w-6 text-sky-700" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dark-lighter mb-1">وسائط</p>
+              <p className="text-2xl font-bold text-dark">{stats.media}</p>
+            </div>
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-lg bg-sky-400 flex items-center justify-center">
+                <PhotoIcon className="h-6 w-6 text-white" />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="rounded-lg bg-light border border-light-gray p-4">
+      <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
@@ -215,17 +229,17 @@ export default function ContentPage() {
             </div>
             <input
               type="text"
-              placeholder="بحث في المحتوى..."
+              placeholder="ابحث عن محتوى..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 pr-10 text-sm text-dark placeholder-dark-lighter focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="block w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 pr-10 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
             />
           </div>
 
           {/* Filter Toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
+            className="flex items-center gap-2 rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-dark hover:bg-sky-100 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
           >
             <FunnelIcon className="h-5 w-5" />
             فلترة
@@ -234,15 +248,15 @@ export default function ContentPage() {
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="mt-4 grid grid-cols-1 gap-4 border-t border-light-gray pt-4 md:grid-cols-2">
+          <div className="mt-5 pt-5 grid grid-cols-1 gap-4 border-t border-sky-100 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-dark mb-2">نوع المحتوى</label>
+              <label className="block text-sm font-semibold text-dark mb-2.5">نوع المحتوى</label>
               <select
                 value={localFilters.content_type}
                 onChange={(e) =>
                   setLocalFilters({ ...localFilters, content_type: e.target.value })
                 }
-                className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
               >
                 <option value="">جميع الأنواع</option>
                 {Object.entries(contentTypeLabels).map(([value, label]) => (
@@ -253,13 +267,13 @@ export default function ContentPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-dark mb-2">الحالة</label>
+              <label className="block text-sm font-semibold text-dark mb-2.5">الحالة</label>
               <select
                 value={localFilters.status}
                 onChange={(e) =>
                   setLocalFilters({ ...localFilters, status: e.target.value })
                 }
-                className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
               >
                 {Object.entries(statusLabels).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -273,67 +287,67 @@ export default function ContentPage() {
       </div>
 
       {/* Content List */}
-      <div className="rounded-lg bg-light border border-light-gray overflow-hidden">
+      <div className="rounded-lg bg-white border border-sky-100 overflow-hidden shadow-sm">
         {loading ? (
-          <div className="p-8 text-center">
+          <div className="p-12 text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-sky-500 border-r-transparent"></div>
-            <p className="mt-4 text-sm text-dark-lighter">جاري تحميل المحتوى...</p>
+            <p className="mt-4 text-base font-semibold text-dark-lighter leading-relaxed">جاري تحميل المحتوى...</p>
           </div>
         ) : filteredContent.length === 0 ? (
-          <div className="p-8 text-center">
+          <div className="p-12 text-center">
             <ChatBubbleLeftRightIcon className="mx-auto h-12 w-12 text-dark-lighter" />
-            <p className="mt-4 text-sm font-medium text-dark">لا يوجد محتوى معلق</p>
-            <p className="mt-1 text-sm text-dark-lighter">
+            <p className="mt-4 text-base font-semibold text-dark leading-relaxed">لا يوجد محتوى معلق</p>
+            <p className="mt-2 text-sm text-dark-lighter leading-relaxed">
               {searchTerm || localFilters.content_type || localFilters.status !== 'pending'
                 ? 'لا يوجد محتوى يطابق معايير البحث'
                 : 'جميع المحتوى تمت مراجعته'}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-light-gray">
+          <div className="divide-y divide-sky-100">
             {filteredContent.map((content) => {
               const ContentIcon = contentTypeIcons[content.content_type] || DocumentTextIcon;
 
               return (
-                <div key={content.id} className="p-6 hover:bg-light-gray transition-colors">
+                <div key={content.id} className="p-5 sm:p-6 hover:bg-sky-50 transition-colors">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <ContentIcon className="h-5 w-5 text-sky-500" />
-                        <h3 className="text-lg font-semibold text-dark">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-3 flex-wrap">
+                        <ContentIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
+                        <h3 className="text-lg font-semibold text-dark leading-relaxed">
                           {content.title || contentTypeLabels[content.content_type] || 'محتوى'}
                         </h3>
                         <span
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap ${
                             statusColors[content.status] || statusColors.pending
                           }`}
                         >
                           {statusLabels[content.status] || content.status}
                         </span>
-                        <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-800">
+                        <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700 whitespace-nowrap">
                           {contentTypeLabels[content.content_type] || content.content_type}
                         </span>
                       </div>
 
-                      <div className="mb-3">
-                        <p className="text-sm text-dark whitespace-pre-wrap line-clamp-4">
+                      <div className="mb-4">
+                        <p className="text-sm text-dark whitespace-pre-wrap line-clamp-4 leading-relaxed">
                           {content.content || content.body || 'لا يوجد محتوى'}
                         </p>
                       </div>
 
                       {content.media_url && (
-                        <div className="mb-3">
+                        <div className="mb-4">
                           {content.content_type === 'media' && content.media_type?.startsWith('image') ? (
                             <img
                               src={content.media_url}
                               alt="محتوى وسائط"
-                              className="max-w-md rounded-lg border border-light-gray"
+                              className="max-w-md rounded-lg border-2 border-sky-200"
                             />
                           ) : content.media_type?.startsWith('video') ? (
                             <video
                               src={content.media_url}
                               controls
-                              className="max-w-md rounded-lg border border-light-gray"
+                              className="max-w-md rounded-lg border-2 border-sky-200"
                             >
                               متصفحك لا يدعم تشغيل الفيديو
                             </video>
@@ -342,7 +356,7 @@ export default function ContentPage() {
                               href={content.media_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sky-600 hover:text-sky-700 text-sm"
+                              className="text-sky-600 hover:text-sky-700 text-sm font-semibold transition-colors"
                             >
                               عرض الملف المرفق
                             </a>
@@ -350,10 +364,10 @@ export default function ContentPage() {
                         </div>
                       )}
 
-                      <div className="flex items-center gap-4 text-xs text-dark-lighter mt-3">
+                      <div className="flex items-center gap-4 text-xs text-dark-lighter mt-4 flex-wrap">
                         {content.author && (
                           <div className="flex items-center gap-2">
-                            <UserIcon className="h-4 w-4" />
+                            <UserIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
                             <span>
                               {content.author?.first_name} {content.author?.last_name} (
                               {content.author?.username})
@@ -362,11 +376,11 @@ export default function ContentPage() {
                         )}
                         {content.created_at && (
                           <div className="flex items-center gap-2">
-                            <ClockIcon className="h-4 w-4" />
+                            <ClockIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
                             <span>
                               {new Date(content.created_at).toLocaleDateString('ar-SA', {
                                 year: 'numeric',
-                                month: 'long',
+                                month: 'short',
                                 day: 'numeric',
                                 hour: '2-digit',
                                 minute: '2-digit',
@@ -377,18 +391,18 @@ export default function ContentPage() {
                       </div>
 
                       {content.rejection_reason && (
-                        <div className="mt-3 p-3 rounded-lg bg-red-50 border border-red-100">
-                          <p className="text-xs font-medium text-red-800 mb-1">سبب الرفض:</p>
-                          <p className="text-sm text-red-900">{content.rejection_reason}</p>
+                        <div className="mt-4 p-4 rounded-lg bg-sky-50 border-2 border-sky-200">
+                          <p className="text-xs font-semibold text-sky-800 mb-1">سبب الرفض:</p>
+                          <p className="text-sm text-sky-900 leading-relaxed">{content.rejection_reason}</p>
                         </div>
                       )}
                     </div>
 
                     {content.status === 'pending' && (
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 flex-shrink-0">
                         <button
                           onClick={() => handleApproveContent(content.id)}
-                          className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                          className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                         >
                           <CheckCircleIcon className="h-5 w-5" />
                           موافقة
@@ -399,7 +413,7 @@ export default function ContentPage() {
                             setRejectionReason('');
                             setShowRejectModal(true);
                           }}
-                          className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                          className="flex items-center gap-2 rounded-lg bg-dark-lighter px-4 py-2 text-sm font-semibold text-white hover:bg-dark transition-colors focus:outline-none focus:ring-2 focus:ring-dark-lighter/30"
                         >
                           <XCircleIcon className="h-5 w-5" />
                           رفض
@@ -416,29 +430,29 @@ export default function ContentPage() {
 
       {/* Reject Modal */}
       {showRejectModal && selectedContent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-lg bg-light p-6">
-            <h3 className="text-lg font-semibold text-dark mb-4">رفض المحتوى</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/50 p-4">
+          <div className="w-full max-w-2xl rounded-lg bg-white border border-sky-100 p-6 shadow-xl">
+            <h3 className="text-xl font-semibold text-dark mb-5" style={{ fontFamily: 'inherit' }}>رفض المحتوى</h3>
 
             {/* Content Preview */}
-            <div className="mb-4 p-4 rounded-lg bg-light-gray">
-              <p className="text-sm font-medium text-dark-lighter mb-2">المحتوى:</p>
-              <p className="text-sm text-dark whitespace-pre-wrap line-clamp-5">
+            <div className="mb-5 p-4 rounded-lg bg-sky-50 border-2 border-sky-200">
+              <p className="text-sm font-semibold text-dark mb-2">المحتوى:</p>
+              <p className="text-sm text-dark whitespace-pre-wrap line-clamp-5 leading-relaxed">
                 {selectedContent.content || selectedContent.body || 'لا يوجد محتوى'}
               </p>
             </div>
 
             {/* Rejection Reason */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-dark mb-2">
-                سبب الرفض <span className="text-red-500">*</span>
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-dark mb-2.5">
+                سبب الرفض <span className="text-sky-600">*</span>
               </label>
               <textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 rows={5}
                 required
-                className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200 resize-none"
                 placeholder="يرجى توضيح سبب رفض هذا المحتوى..."
               />
             </div>
@@ -448,7 +462,7 @@ export default function ContentPage() {
               <button
                 onClick={handleRejectContent}
                 disabled={!rejectionReason.trim()}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-dark-lighter px-4 py-2.5 text-sm font-semibold text-white hover:bg-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-dark-lighter/30"
               >
                 <XCircleIcon className="h-5 w-5" />
                 رفض
@@ -459,7 +473,7 @@ export default function ContentPage() {
                   setSelectedContent(null);
                   setRejectionReason('');
                 }}
-                className="flex-1 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
+                className="flex-1 rounded-lg border-2 border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
               >
                 إلغاء
               </button>

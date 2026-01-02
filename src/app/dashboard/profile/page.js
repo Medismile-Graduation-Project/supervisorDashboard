@@ -99,7 +99,7 @@ export default function ProfilePage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-sky-500 border-r-transparent"></div>
-          <p className="mt-4 text-sm text-dark-lighter">جاري تحميل الملف الشخصي...</p>
+          <p className="mt-4 text-base font-semibold text-dark-lighter leading-relaxed">جاري تحميل الملف الشخصي...</p>
         </div>
       </div>
     );
@@ -108,7 +108,7 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <p className="text-dark-lighter">لا يمكن تحميل الملف الشخصي</p>
+        <p className="text-base font-semibold text-dark-lighter leading-relaxed">لا يمكن تحميل الملف الشخصي</p>
       </div>
     );
   }
@@ -116,9 +116,11 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-dark">الملف الشخصي</h1>
-        <p className="mt-1 text-sm text-dark-lighter">
+      <div className="mb-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
+          الملف الشخصي
+        </h1>
+        <p className="text-sm sm:text-base text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
           إدارة معلوماتك الشخصية وإعدادات الحساب
         </p>
       </div>
@@ -126,64 +128,64 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Profile Card */}
         <div className="lg:col-span-1">
-          <div className="rounded-lg bg-light border border-light-gray p-6">
+          <div className="rounded-lg bg-white border border-sky-100 p-6 shadow-sm">
             <div className="text-center">
               {user.profile_picture ? (
                 <img
                   src={user.profile_picture}
                   alt="Profile"
-                  className="mx-auto h-24 w-24 rounded-full object-cover shadow-lg"
+                  className="mx-auto h-24 w-24 rounded-full object-cover border-2 border-sky-200 shadow-md"
                 />
               ) : (
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-sky-600 text-3xl font-bold text-white shadow-lg">
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-sky-600 text-3xl font-bold text-white border-2 border-sky-200 shadow-md">
                   {user.email?.[0]?.toUpperCase() || 'U'}
                 </div>
               )}
-              <h2 className="mt-4 text-xl font-bold text-dark">
+              <h2 className="mt-4 text-xl font-bold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>
                 {user.email?.split('@')[0] || 'مشرف'}
               </h2>
-              <p className="mt-1 text-sm text-dark-lighter">
+              <p className="mt-1 text-sm text-dark-lighter leading-relaxed">
                 {user.role === 'supervisor' ? 'مشرف' : user.role || 'مستخدم'}
               </p>
               {user.university_name && (
-                <p className="mt-2 text-sm text-dark-lighter">{user.university_name}</p>
+                <p className="mt-2 text-sm text-dark-lighter leading-relaxed">{user.university_name}</p>
               )}
               {user.department && (
-                <p className="mt-1 text-sm text-dark-lighter">{user.department}</p>
+                <p className="mt-1 text-sm text-dark-lighter leading-relaxed">{user.department}</p>
               )}
               {user.position && (
-                <p className="mt-1 text-sm text-dark-lighter">{user.position}</p>
+                <p className="mt-1 text-sm text-dark-lighter leading-relaxed">{user.position}</p>
               )}
             </div>
 
-            <div className="mt-6 space-y-3 border-t border-light-gray pt-6">
+            <div className="mt-6 space-y-3 border-t border-sky-100 pt-6">
               <div className="flex items-center gap-3 text-sm">
-                <EnvelopeIcon className="h-5 w-5 text-dark-lighter" />
+                <EnvelopeIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
                 <span className="text-dark-lighter">البريد الإلكتروني:</span>
-                <span className="font-medium text-dark">{user.email || 'غير محدد'}</span>
+                <span className="font-semibold text-dark">{user.email || 'غير محدد'}</span>
               </div>
               {user.phone_number && (
                 <div className="flex items-center gap-3 text-sm">
-                  <PhoneIcon className="h-5 w-5 text-dark-lighter" />
+                  <PhoneIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
                   <span className="text-dark-lighter">الهاتف:</span>
-                  <span className="font-medium text-dark">{user.phone_number}</span>
+                  <span className="font-semibold text-dark">{user.phone_number}</span>
                 </div>
               )}
               {user.university_name && (
                 <div className="flex items-center gap-3 text-sm">
-                  <BuildingOfficeIcon className="h-5 w-5 text-dark-lighter" />
+                  <BuildingOfficeIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
                   <span className="text-dark-lighter">الجامعة:</span>
-                  <span className="font-medium text-dark">{user.university_name}</span>
+                  <span className="font-semibold text-dark">{user.university_name}</span>
                 </div>
               )}
               {user.created_at && (
                 <div className="flex items-center gap-3 text-sm">
-                  <CalendarIcon className="h-5 w-5 text-dark-lighter" />
+                  <CalendarIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
                   <span className="text-dark-lighter">تاريخ التسجيل:</span>
-                  <span className="font-medium text-dark">
+                  <span className="font-semibold text-dark">
                     {new Date(user.created_at).toLocaleDateString('ar-SA', {
                       year: 'numeric',
-                      month: 'long',
+                      month: 'short',
                       day: 'numeric',
                     })}
                   </span>
@@ -196,13 +198,13 @@ export default function ProfilePage() {
         {/* Profile Information */}
         <div className="lg:col-span-2 space-y-6">
           {/* Personal Information */}
-          <div className="rounded-lg bg-light border border-light-gray p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-dark">المعلومات الشخصية</h3>
+          <div className="rounded-lg bg-white border border-sky-100 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-semibold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>المعلومات الشخصية</h3>
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+                  className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 >
                   <PencilIcon className="h-5 w-5" />
                   تعديل
@@ -211,73 +213,73 @@ export default function ProfilePage() {
             </div>
 
             {isEditing ? (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-2">
+                  <label className="block text-sm font-semibold text-dark mb-2.5">
                     البريد الإلكتروني
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-2">رقم الهاتف</label>
+                  <label className="block text-sm font-semibold text-dark mb-2.5">رقم الهاتف</label>
                   <input
                     type="tel"
                     value={formData.phone_number}
                     onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-2">العنوان</label>
+                  <label className="block text-sm font-semibold text-dark mb-2.5">العنوان</label>
                   <input
                     type="text"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-2">القسم</label>
+                  <label className="block text-sm font-semibold text-dark mb-2.5">القسم</label>
                   <input
                     type="text"
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-2">المنصب</label>
+                  <label className="block text-sm font-semibold text-dark mb-2.5">المنصب</label>
                   <input
                     type="text"
                     value={formData.position}
                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-2">رقم الرخصة</label>
+                  <label className="block text-sm font-semibold text-dark mb-2.5">رقم الرخصة</label>
                   <input
                     type="text"
                     value={formData.license_number}
                     onChange={(e) => setFormData({ ...formData, license_number: e.target.value })}
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
                   />
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-2">
                   <button
                     onClick={handleUpdateProfile}
-                    className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+                    className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                   >
                     <CheckIcon className="h-5 w-5" />
                     حفظ
@@ -294,7 +296,7 @@ export default function ProfilePage() {
                         license_number: user.license_number || '',
                       });
                     }}
-                    className="flex items-center gap-2 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
+                    className="flex items-center gap-2 rounded-lg border-2 border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
                   >
                     <XMarkIcon className="h-5 w-5" />
                     إلغاء
@@ -302,65 +304,65 @@ export default function ProfilePage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-dark-lighter mb-1">
+                  <label className="block text-sm font-semibold text-dark mb-2">
                     البريد الإلكتروني
                   </label>
-                  <p className="text-sm font-medium text-dark">{user.email || 'غير محدد'}</p>
+                  <p className="text-sm font-semibold text-dark leading-relaxed">{user.email || 'غير محدد'}</p>
                 </div>
 
                 {user.phone_number && (
                   <div>
-                    <label className="block text-sm font-medium text-dark-lighter mb-1">
+                    <label className="block text-sm font-semibold text-dark mb-2">
                       رقم الهاتف
                     </label>
-                    <p className="text-sm font-medium text-dark">{user.phone_number}</p>
+                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.phone_number}</p>
                   </div>
                 )}
 
                 {user.address && (
                   <div>
-                    <label className="block text-sm font-medium text-dark-lighter mb-1">
+                    <label className="block text-sm font-semibold text-dark mb-2">
                       العنوان
                     </label>
-                    <p className="text-sm font-medium text-dark">{user.address}</p>
+                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.address}</p>
                   </div>
                 )}
 
                 {user.university_name && (
                   <div>
-                    <label className="block text-sm font-medium text-dark-lighter mb-1">
+                    <label className="block text-sm font-semibold text-dark mb-2">
                       الجامعة
                     </label>
-                    <p className="text-sm font-medium text-dark">{user.university_name}</p>
+                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.university_name}</p>
                   </div>
                 )}
 
                 {user.department && (
                   <div>
-                    <label className="block text-sm font-medium text-dark-lighter mb-1">
+                    <label className="block text-sm font-semibold text-dark mb-2">
                       القسم
                     </label>
-                    <p className="text-sm font-medium text-dark">{user.department}</p>
+                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.department}</p>
                   </div>
                 )}
 
                 {user.position && (
                   <div>
-                    <label className="block text-sm font-medium text-dark-lighter mb-1">
+                    <label className="block text-sm font-semibold text-dark mb-2">
                       المنصب
                     </label>
-                    <p className="text-sm font-medium text-dark">{user.position}</p>
+                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.position}</p>
                   </div>
                 )}
 
                 {user.license_number && (
                   <div>
-                    <label className="block text-sm font-medium text-dark-lighter mb-1">
+                    <label className="block text-sm font-semibold text-dark mb-2">
                       رقم الرخصة
                     </label>
-                    <p className="text-sm font-medium text-dark">{user.license_number}</p>
+                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.license_number}</p>
                   </div>
                 )}
               </div>
@@ -368,26 +370,26 @@ export default function ProfilePage() {
           </div>
 
           {/* Security Settings */}
-          <div className="rounded-lg bg-light border border-light-gray p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-dark">الأمان</h3>
+          <div className="rounded-lg bg-white border border-sky-100 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-semibold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>الأمان</h3>
               <button
                 onClick={() => setShowPasswordModal(true)}
-                className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+                className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               >
                 <KeyIcon className="h-5 w-5" />
                 تغيير كلمة المرور
               </button>
             </div>
 
-            <div className="space-y-3 text-sm">
+            <div className="space-y-4 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-dark-lighter">كلمة المرور</span>
-                <span className="font-medium text-dark">••••••••</span>
+                <span className="font-semibold text-dark">••••••••</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-dark-lighter">حالة الحساب</span>
-                <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                <span className="rounded-full bg-sky-500 px-3 py-1 text-xs font-medium text-white">
                   نشط
                 </span>
               </div>
@@ -398,14 +400,14 @@ export default function ProfilePage() {
 
       {/* Change Password Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-light p-6">
-            <h3 className="text-lg font-semibold text-dark mb-4">تغيير كلمة المرور</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/50 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white border border-sky-100 p-6 shadow-xl">
+            <h3 className="text-xl font-semibold text-dark mb-5" style={{ fontFamily: 'inherit' }}>تغيير كلمة المرور</h3>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-dark mb-2">
-                  كلمة المرور الحالية <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-dark mb-2.5">
+                  كلمة المرور الحالية <span className="text-sky-600">*</span>
                 </label>
                 <input
                   type="password"
@@ -417,13 +419,13 @@ export default function ProfilePage() {
                     })
                   }
                   required
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-dark mb-2">
-                  كلمة المرور الجديدة <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-dark mb-2.5">
+                  كلمة المرور الجديدة <span className="text-sky-600">*</span>
                 </label>
                 <input
                   type="password"
@@ -433,13 +435,13 @@ export default function ProfilePage() {
                   }
                   required
                   minLength={6}
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-dark mb-2">
-                  تأكيد كلمة المرور الجديدة <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-dark mb-2.5">
+                  تأكيد كلمة المرور الجديدة <span className="text-sky-600">*</span>
                 </label>
                 <input
                   type="password"
@@ -449,7 +451,7 @@ export default function ProfilePage() {
                   }
                   required
                   minLength={6}
-                  className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
                 />
               </div>
             </div>
@@ -457,7 +459,7 @@ export default function ProfilePage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleChangePassword}
-                className="flex-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+                className="flex-1 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               >
                 تغيير
               </button>
@@ -470,7 +472,7 @@ export default function ProfilePage() {
                     confirm_password: '',
                   });
                 }}
-                className="flex-1 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
+                className="flex-1 rounded-lg border-2 border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
               >
                 إلغاء
               </button>

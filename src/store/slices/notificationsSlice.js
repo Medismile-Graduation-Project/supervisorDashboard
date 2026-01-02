@@ -145,8 +145,10 @@ const notificationsSlice = createSlice({
       .addCase(markNotificationAsRead.fulfilled, (state, action) => {
         const index = state.notifications.findIndex((n) => n.id === action.payload.id);
         if (index !== -1) {
+          const wasUnread = !state.notifications[index].is_read;
           state.notifications[index] = action.payload;
-          if (!action.payload.is_read) {
+          // إذا كان الإشعار غير مقروء سابقاً وأصبح مقروءاً الآن، قلل العدد
+          if (wasUnread && action.payload.is_read) {
             state.unreadCount = Math.max(0, state.unreadCount - 1);
           }
         }

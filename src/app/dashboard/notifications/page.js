@@ -32,10 +32,10 @@ const priorityLabels = {
 };
 
 const priorityColors = {
-  low: 'bg-gray-100 text-gray-800',
-  normal: 'bg-blue-100 text-blue-800',
-  high: 'bg-orange-100 text-orange-800',
-  critical: 'bg-red-100 text-red-800',
+  low: 'bg-sky-50 text-sky-700',
+  normal: 'bg-sky-100 text-sky-800',
+  high: 'bg-sky-200 text-sky-800',
+  critical: 'bg-sky-500 text-white',
 };
 
 const statusLabels = {
@@ -46,10 +46,10 @@ const statusLabels = {
 };
 
 const statusColors = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  accepted: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
-  info: 'bg-blue-100 text-blue-800',
+  pending: 'bg-sky-200 text-sky-800',
+  accepted: 'bg-sky-500 text-white',
+  rejected: 'bg-dark-lighter text-light',
+  info: 'bg-sky-100 text-sky-800',
 };
 
 const getNotificationIcon = (notificationType) => {
@@ -217,17 +217,19 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <h1 className="text-2xl font-bold text-dark">الإشعارات</h1>
-          <p className="mt-1 text-sm text-dark-lighter">
+          <h1 className="text-2xl sm:text-3xl font-bold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
+            الإشعارات
+          </h1>
+          <p className="text-sm sm:text-base text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
             عرض وإدارة جميع الإشعارات الخاصة بك
           </p>
         </div>
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllAsRead}
-            className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+            className="flex items-center gap-2.5 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
           >
             <CheckCircleIcon className="h-5 w-5" />
             تمييز الكل كمقروء
@@ -237,83 +239,95 @@ export default function NotificationsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg bg-light border border-light-gray p-4">
+        <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-dark-lighter">إجمالي الإشعارات</p>
-              <p className="mt-1 text-2xl font-bold text-dark">{stats.total}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dark-lighter mb-1">إجمالي الإشعارات</p>
+              <p className="text-2xl font-bold text-dark">{stats.total}</p>
             </div>
-            <BellIcon className="h-8 w-8 text-sky-500" />
-          </div>
-        </div>
-        <div className="rounded-lg bg-light border border-light-gray p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-dark-lighter">غير مقروءة</p>
-              <p className="mt-1 text-2xl font-bold text-dark">{stats.unread}</p>
-            </div>
-            <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
-              <div className="h-4 w-4 rounded-full bg-red-500"></div>
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-lg bg-sky-100 flex items-center justify-center">
+                <BellIcon className="h-6 w-6 text-sky-500" />
+              </div>
             </div>
           </div>
         </div>
-        <div className="rounded-lg bg-light border border-light-gray p-4">
+        <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-dark-lighter">مقروءة</p>
-              <p className="mt-1 text-2xl font-bold text-dark">{stats.read}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dark-lighter mb-1">غير مقروءة</p>
+              <p className="text-2xl font-bold text-dark">{stats.unread}</p>
             </div>
-            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-              <div className="h-4 w-4 rounded-full bg-green-500"></div>
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-lg bg-sky-200 flex items-center justify-center">
+                <div className="h-5 w-5 rounded-full bg-sky-600"></div>
+              </div>
             </div>
           </div>
         </div>
-        <div className="rounded-lg bg-light border border-light-gray p-4">
+        <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-dark-lighter">عالية الأولوية</p>
-              <p className="mt-1 text-2xl font-bold text-dark">{stats.high}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dark-lighter mb-1">مقروءة</p>
+              <p className="text-2xl font-bold text-dark">{stats.read}</p>
             </div>
-            <ExclamationTriangleIcon className="h-8 w-8 text-orange-500" />
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-lg bg-sky-100 flex items-center justify-center">
+                <div className="h-5 w-5 rounded-full bg-sky-500"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dark-lighter mb-1">عالية الأولوية</p>
+              <p className="text-2xl font-bold text-dark">{stats.high}</p>
+            </div>
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-lg bg-sky-300 flex items-center justify-center">
+                <ExclamationTriangleIcon className="h-6 w-6 text-sky-700" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-md">
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-            <MagnifyingGlassIcon className="h-5 w-5 text-dark-lighter" />
+      <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <MagnifyingGlassIcon className="h-5 w-5 text-dark-lighter" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="ابحث عن إشعار..."
+              className="block w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 pr-10 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+            />
           </div>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="بحث في الإشعارات..."
-            className="block w-full rounded-lg border border-dark-lighter bg-light py-2 pr-10 pl-4 text-sm text-dark placeholder-dark-lighter focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-          />
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-dark hover:bg-sky-100 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+          >
+            <FunnelIcon className="h-5 w-5" />
+            فلترة
+          </button>
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
-        >
-          <FunnelIcon className="h-5 w-5" />
-          فلترة
-        </button>
-      </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <div className="rounded-lg bg-light border border-light-gray p-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="mt-5 pt-5 grid grid-cols-1 gap-4 border-t border-sky-100 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label className="block text-sm font-medium text-dark mb-2">الحالة</label>
+              <label className="block text-sm font-semibold text-dark mb-2.5">الحالة</label>
               <select
                 value={localFilters.is_read}
                 onChange={(e) =>
                   setLocalFilters({ ...localFilters, is_read: e.target.value })
                 }
-                className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
               >
                 <option value="">الكل</option>
                 <option value="read">مقروءة</option>
@@ -321,13 +335,13 @@ export default function NotificationsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-dark mb-2">الأولوية</label>
+              <label className="block text-sm font-semibold text-dark mb-2.5">الأولوية</label>
               <select
                 value={localFilters.priority}
                 onChange={(e) =>
                   setLocalFilters({ ...localFilters, priority: e.target.value })
                 }
-                className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
               >
                 <option value="">الكل</option>
                 {Object.entries(priorityLabels).map(([value, label]) => (
@@ -338,13 +352,13 @@ export default function NotificationsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-dark mb-2">حالة الإشعار</label>
+              <label className="block text-sm font-semibold text-dark mb-2.5">حالة الإشعار</label>
               <select
                 value={localFilters.status}
                 onChange={(e) =>
                   setLocalFilters({ ...localFilters, status: e.target.value })
                 }
-                className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
               >
                 <option value="">الكل</option>
                 {Object.entries(statusLabels).map(([value, label]) => (
@@ -355,13 +369,13 @@ export default function NotificationsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-dark mb-2">النوع</label>
+              <label className="block text-sm font-semibold text-dark mb-2.5">النوع</label>
               <select
                 value={localFilters.notification_type}
                 onChange={(e) =>
                   setLocalFilters({ ...localFilters, notification_type: e.target.value })
                 }
-                className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
               >
                 <option value="">الكل</option>
                 <option value="report_submitted">تقرير جديد</option>
@@ -372,28 +386,28 @@ export default function NotificationsPage() {
               </select>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Notifications List */}
-      <div className="rounded-lg bg-light border border-light-gray overflow-hidden">
+      <div className="rounded-lg bg-white border border-sky-100 overflow-hidden shadow-sm">
         {loading ? (
-          <div className="p-8 text-center">
+          <div className="p-12 text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-sky-500 border-r-transparent"></div>
-            <p className="mt-4 text-sm text-dark-lighter">جاري تحميل الإشعارات...</p>
+            <p className="mt-4 text-base font-semibold text-dark-lighter leading-relaxed">جاري تحميل الإشعارات...</p>
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="p-8 text-center">
+          <div className="p-12 text-center">
             <BellIcon className="mx-auto h-12 w-12 text-dark-lighter" />
-            <p className="mt-4 text-sm font-medium text-dark">لا توجد إشعارات</p>
-            <p className="mt-1 text-sm text-dark-lighter">
+            <p className="mt-4 text-base font-semibold text-dark leading-relaxed">لا توجد إشعارات</p>
+            <p className="mt-2 text-sm text-dark-lighter leading-relaxed">
               {searchTerm || Object.values(localFilters).some((f) => f)
                 ? 'لا توجد إشعارات تطابق معايير البحث'
                 : 'لا توجد إشعارات حتى الآن'}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-light-gray">
+          <div className="divide-y divide-sky-100">
             {filteredNotifications.map((notification) => {
               const NotificationIcon = getNotificationIcon(notification.notification_type);
 
@@ -401,17 +415,17 @@ export default function NotificationsPage() {
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`p-6 hover:bg-light-gray transition-colors cursor-pointer ${
-                    !notification.is_read ? 'bg-sky-50/50' : ''
+                  className={`p-5 sm:p-6 hover:bg-sky-50 transition-colors cursor-pointer ${
+                    !notification.is_read ? 'bg-sky-50' : ''
                   }`}
                 >
                   <div className="flex items-start gap-4">
                     <div className="shrink-0">
                       <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg ${
                           !notification.is_read
                             ? 'bg-sky-100 text-sky-600'
-                            : 'bg-light-gray text-dark-lighter'
+                            : 'bg-sky-50 text-dark-lighter'
                         }`}
                       >
                         <NotificationIcon className="h-5 w-5" />
@@ -419,21 +433,21 @@ export default function NotificationsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-base font-semibold text-dark">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <h3 className="text-base font-semibold text-dark leading-relaxed">
                               {notification.title}
                             </h3>
                             {!notification.is_read && (
-                              <span className="h-2 w-2 rounded-full bg-sky-500"></span>
+                              <span className="h-2 w-2 rounded-full bg-sky-500 flex-shrink-0"></span>
                             )}
                           </div>
-                          <p className="text-sm text-dark-lighter mb-2 line-clamp-2">
+                          <p className="text-sm text-dark-lighter mb-3 line-clamp-2 leading-relaxed">
                             {notification.message}
                           </p>
                           <div className="flex items-center gap-3 flex-wrap">
                             <span
-                              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap ${
                                 priorityColors[notification.priority] || priorityColors.normal
                               }`}
                             >
@@ -441,7 +455,7 @@ export default function NotificationsPage() {
                             </span>
                             {notification.status && (
                               <span
-                                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap ${
                                   statusColors[notification.status] || statusColors.info
                                 }`}
                               >
@@ -451,7 +465,7 @@ export default function NotificationsPage() {
                             <span className="text-xs text-dark-lighter">
                               {new Date(notification.created_at).toLocaleDateString('ar-SA', {
                                 year: 'numeric',
-                                month: 'long',
+                                month: 'short',
                                 day: 'numeric',
                                 hour: '2-digit',
                                 minute: '2-digit',
@@ -459,14 +473,14 @@ export default function NotificationsPage() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2 flex-shrink-0">
                           {!notification.is_read && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleMarkAsRead(notification.id);
                               }}
-                              className="rounded-lg border border-dark-lighter bg-light px-3 py-1.5 text-xs font-medium text-dark hover:bg-light-gray transition-colors"
+                              className="rounded-lg border-2 border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
                             >
                               تمييز كمقروء
                             </button>
@@ -484,30 +498,30 @@ export default function NotificationsPage() {
 
       {/* Notification Details Modal */}
       {showDetailsModal && currentNotification && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-lg bg-light p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-dark mb-4">تفاصيل الإشعار</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/50 p-4">
+          <div className="w-full max-w-2xl rounded-lg bg-white border border-sky-100 p-6 max-h-[90vh] overflow-y-auto shadow-xl">
+            <h3 className="text-xl font-semibold text-dark mb-5" style={{ fontFamily: 'inherit' }}>تفاصيل الإشعار</h3>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-dark-lighter mb-1">العنوان</label>
-                <p className="text-base font-semibold text-dark">{currentNotification.title}</p>
+                <label className="block text-sm font-semibold text-dark mb-2">العنوان</label>
+                <p className="text-base font-semibold text-dark leading-relaxed">{currentNotification.title}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-dark-lighter mb-1">الرسالة</label>
-                <p className="text-sm text-dark whitespace-pre-wrap">
+                <label className="block text-sm font-semibold text-dark mb-2">الرسالة</label>
+                <p className="text-sm text-dark whitespace-pre-wrap leading-relaxed">
                   {currentNotification.message}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-dark-lighter mb-1">
+                  <label className="block text-sm font-semibold text-dark mb-2">
                     الأولوية
                   </label>
                   <span
-                    className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
                       priorityColors[currentNotification.priority] || priorityColors.normal
                     }`}
                   >
@@ -515,9 +529,9 @@ export default function NotificationsPage() {
                   </span>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-dark-lighter mb-1">الحالة</label>
+                  <label className="block text-sm font-semibold text-dark mb-2">الحالة</label>
                   <span
-                    className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
                       statusColors[currentNotification.status] || statusColors.info
                     }`}
                   >
@@ -525,17 +539,17 @@ export default function NotificationsPage() {
                   </span>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-dark-lighter mb-1">النوع</label>
-                  <p className="text-sm text-dark">{currentNotification.notification_type}</p>
+                  <label className="block text-sm font-semibold text-dark mb-2">النوع</label>
+                  <p className="text-sm font-semibold text-dark leading-relaxed">{currentNotification.notification_type}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-dark-lighter mb-1">
+                  <label className="block text-sm font-semibold text-dark mb-2">
                     تاريخ الإنشاء
                   </label>
-                  <p className="text-sm text-dark">
+                  <p className="text-sm font-semibold text-dark leading-relaxed">
                     {new Date(currentNotification.created_at).toLocaleDateString('ar-SA', {
                       year: 'numeric',
-                      month: 'long',
+                      month: 'short',
                       day: 'numeric',
                       hour: '2-digit',
                       minute: '2-digit',
@@ -546,11 +560,11 @@ export default function NotificationsPage() {
 
               {currentNotification.payload && Object.keys(currentNotification.payload).length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-dark-lighter mb-1">
+                  <label className="block text-sm font-semibold text-dark mb-2">
                     معلومات إضافية
                   </label>
-                  <div className="rounded-lg bg-light-gray p-3">
-                    <pre className="text-xs text-dark whitespace-pre-wrap">
+                  <div className="rounded-lg bg-sky-50 border-2 border-sky-200 p-4">
+                    <pre className="text-xs text-dark whitespace-pre-wrap leading-relaxed">
                       {JSON.stringify(currentNotification.payload, null, 2)}
                     </pre>
                   </div>
@@ -560,11 +574,11 @@ export default function NotificationsPage() {
               {currentNotification.proposed_changes &&
                 Object.keys(currentNotification.proposed_changes).length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-dark-lighter mb-1">
+                    <label className="block text-sm font-semibold text-dark mb-2">
                       التغييرات المقترحة
                     </label>
-                    <div className="rounded-lg bg-light-gray p-3">
-                      <pre className="text-xs text-dark whitespace-pre-wrap">
+                    <div className="rounded-lg bg-sky-50 border-2 border-sky-200 p-4">
+                      <pre className="text-xs text-dark whitespace-pre-wrap leading-relaxed">
                         {JSON.stringify(currentNotification.proposed_changes, null, 2)}
                       </pre>
                     </div>
@@ -576,7 +590,7 @@ export default function NotificationsPage() {
               {currentNotification.target_type && currentNotification.target_object_id && (
                 <button
                   onClick={() => handleNavigateToTarget(currentNotification)}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 >
                   الانتقال للكائن المرتبط
                 </button>
@@ -585,14 +599,14 @@ export default function NotificationsPage() {
                 <>
                   <button
                     onClick={() => handleUpdateStatus(currentNotification.id, 'accepted')}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                   >
                     <CheckCircleIcon className="h-5 w-5" />
                     قبول
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(currentNotification.id, 'rejected')}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-dark-lighter px-4 py-2.5 text-sm font-semibold text-white hover:bg-dark transition-colors focus:outline-none focus:ring-2 focus:ring-dark-lighter/30"
                   >
                     <XCircleIcon className="h-5 w-5" />
                     رفض
@@ -605,7 +619,7 @@ export default function NotificationsPage() {
                   setSelectedNotificationId(null);
                   dispatch(clearCurrentNotification());
                 }}
-                className="flex-1 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
+                className="flex-1 rounded-lg border-2 border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
               >
                 إغلاق
               </button>
