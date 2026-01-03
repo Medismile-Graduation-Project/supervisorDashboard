@@ -14,6 +14,7 @@ import {
   ChartBarIcon,
   BellIcon,
   UserIcon,
+  LifebuoyIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
@@ -25,6 +26,7 @@ import {
   ChartBarIcon as ChartBarIconSolid,
   BellIcon as BellIconSolid,
   UserIcon as UserIconSolid,
+  LifebuoyIcon as LifebuoyIconSolid,
 } from '@heroicons/react/24/solid';
 
 const navigation = [
@@ -36,6 +38,7 @@ const navigation = [
   { name: 'المحتوى', href: '/dashboard/content', icon: ChatBubbleLeftRightIcon, iconSolid: ChatBubbleLeftRightIconSolid },
   { name: 'التقارير', href: '/dashboard/reports', icon: ChartBarIcon, iconSolid: ChartBarIconSolid },
   { name: 'الإشعارات', href: '/dashboard/notifications', icon: BellIcon, iconSolid: BellIconSolid },
+  { name: 'الدعم', href: '/dashboard/support', icon: LifebuoyIcon, iconSolid: LifebuoyIconSolid },
   { name: 'الملف الشخصي', href: '/dashboard/profile', icon: UserIcon, iconSolid: UserIconSolid },
 ];
 

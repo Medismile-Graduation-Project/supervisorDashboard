@@ -114,75 +114,83 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Page Header */}
-      <div className="mb-2">
-        <h1 className="text-2xl sm:text-3xl font-bold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
+      <div className="mb-2 px-2 sm:px-0">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
           الملف الشخصي
         </h1>
-        <p className="text-sm sm:text-base text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
+        <p className="text-xs sm:text-sm lg:text-base text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
           إدارة معلوماتك الشخصية وإعدادات الحساب
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Profile Card */}
         <div className="lg:col-span-1">
-          <div className="rounded-lg bg-white border border-sky-100 p-6 shadow-sm">
+          <div className="rounded-lg bg-white border border-sky-100 p-4 sm:p-6 shadow-sm">
             <div className="text-center">
               {user.profile_picture ? (
                 <img
                   src={user.profile_picture}
                   alt="Profile"
-                  className="mx-auto h-24 w-24 rounded-full object-cover border-2 border-sky-200 shadow-md"
+                  className="mx-auto h-20 w-20 sm:h-24 sm:w-24 rounded-full object-cover border-2 border-sky-200 shadow-md"
                 />
               ) : (
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-sky-600 text-3xl font-bold text-white border-2 border-sky-200 shadow-md">
+                <div className="mx-auto flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-sky-600 text-2xl sm:text-3xl font-bold text-white border-2 border-sky-200 shadow-md">
                   {user.email?.[0]?.toUpperCase() || 'U'}
                 </div>
               )}
-              <h2 className="mt-4 text-xl font-bold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>
+              <h2 className="mt-3 sm:mt-4 text-lg sm:text-xl font-bold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>
                 {user.email?.split('@')[0] || 'مشرف'}
               </h2>
-              <p className="mt-1 text-sm text-dark-lighter leading-relaxed">
+              <p className="mt-1 text-xs sm:text-sm text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
                 {user.role === 'supervisor' ? 'مشرف' : user.role || 'مستخدم'}
               </p>
               {user.university_name && (
-                <p className="mt-2 text-sm text-dark-lighter leading-relaxed">{user.university_name}</p>
+                <p className="mt-2 text-xs sm:text-sm text-dark-lighter leading-relaxed break-words px-2" style={{ fontFamily: 'inherit' }}>{user.university_name}</p>
               )}
               {user.department && (
-                <p className="mt-1 text-sm text-dark-lighter leading-relaxed">{user.department}</p>
+                <p className="mt-1 text-xs sm:text-sm text-dark-lighter leading-relaxed break-words px-2" style={{ fontFamily: 'inherit' }}>{user.department}</p>
               )}
               {user.position && (
-                <p className="mt-1 text-sm text-dark-lighter leading-relaxed">{user.position}</p>
+                <p className="mt-1 text-xs sm:text-sm text-dark-lighter leading-relaxed break-words px-2" style={{ fontFamily: 'inherit' }}>{user.position}</p>
               )}
             </div>
 
-            <div className="mt-6 space-y-3 border-t border-sky-100 pt-6">
-              <div className="flex items-center gap-3 text-sm">
-                <EnvelopeIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
-                <span className="text-dark-lighter">البريد الإلكتروني:</span>
-                <span className="font-semibold text-dark">{user.email || 'غير محدد'}</span>
+            <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3 border-t border-sky-100 pt-4 sm:pt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs sm:text-sm">
+                <div className="flex items-center gap-2">
+                  <EnvelopeIcon className="h-4 w-4 sm:h-5 sm:w-5 text-sky-500 flex-shrink-0" />
+                  <span className="text-dark-lighter font-medium">البريد الإلكتروني:</span>
+                </div>
+                <span className="font-semibold text-dark break-words text-right sm:text-left" style={{ fontFamily: 'inherit' }}>{user.email || 'غير محدد'}</span>
               </div>
               {user.phone_number && (
-                <div className="flex items-center gap-3 text-sm">
-                  <PhoneIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
-                  <span className="text-dark-lighter">الهاتف:</span>
-                  <span className="font-semibold text-dark">{user.phone_number}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2">
+                    <PhoneIcon className="h-4 w-4 sm:h-5 sm:w-5 text-sky-500 flex-shrink-0" />
+                    <span className="text-dark-lighter font-medium">الهاتف:</span>
+                  </div>
+                  <span className="font-semibold text-dark break-words text-right sm:text-left" style={{ fontFamily: 'inherit' }}>{user.phone_number}</span>
                 </div>
               )}
               {user.university_name && (
-                <div className="flex items-center gap-3 text-sm">
-                  <BuildingOfficeIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
-                  <span className="text-dark-lighter">الجامعة:</span>
-                  <span className="font-semibold text-dark">{user.university_name}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2">
+                    <BuildingOfficeIcon className="h-4 w-4 sm:h-5 sm:w-5 text-sky-500 flex-shrink-0" />
+                    <span className="text-dark-lighter font-medium">الجامعة:</span>
+                  </div>
+                  <span className="font-semibold text-dark break-words text-right sm:text-left" style={{ fontFamily: 'inherit' }}>{user.university_name}</span>
                 </div>
               )}
               {user.created_at && (
-                <div className="flex items-center gap-3 text-sm">
-                  <CalendarIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
-                  <span className="text-dark-lighter">تاريخ التسجيل:</span>
-                  <span className="font-semibold text-dark">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-sky-500 flex-shrink-0" />
+                    <span className="text-dark-lighter font-medium">تاريخ التسجيل:</span>
+                  </div>
+                  <span className="font-semibold text-dark break-words text-right sm:text-left" style={{ fontFamily: 'inherit' }}>
                     {new Date(user.created_at).toLocaleDateString('ar-SA', {
                       year: 'numeric',
                       month: 'short',
@@ -196,93 +204,101 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Information */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Personal Information */}
-          <div className="rounded-lg bg-white border border-sky-100 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>المعلومات الشخصية</h3>
+          <div className="rounded-lg bg-white border border-sky-100 p-4 sm:p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-5">
+              <h3 className="text-base sm:text-lg font-semibold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>المعلومات الشخصية</h3>
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                  className="flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30 w-full sm:w-auto"
+                  style={{ fontFamily: 'inherit' }}
                 >
-                  <PencilIcon className="h-5 w-5" />
-                  تعديل
+                  <PencilIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span>تعديل</span>
                 </button>
               )}
             </div>
 
             {isEditing ? (
-              <div className="space-y-5">
+              <div className="space-y-4 sm:space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-dark mb-2.5">
+                  <label className="block text-xs sm:text-sm font-semibold text-dark mb-2 sm:mb-2.5" style={{ fontFamily: 'inherit' }}>
                     البريد الإلكتروني
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    style={{ fontFamily: 'inherit' }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-dark mb-2.5">رقم الهاتف</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-dark mb-2 sm:mb-2.5" style={{ fontFamily: 'inherit' }}>رقم الهاتف</label>
                   <input
                     type="tel"
                     value={formData.phone_number}
                     onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    style={{ fontFamily: 'inherit' }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-dark mb-2.5">العنوان</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-dark mb-2 sm:mb-2.5" style={{ fontFamily: 'inherit' }}>العنوان</label>
                   <input
                     type="text"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    style={{ fontFamily: 'inherit' }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-dark mb-2.5">القسم</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-dark mb-2 sm:mb-2.5" style={{ fontFamily: 'inherit' }}>القسم</label>
                   <input
                     type="text"
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    style={{ fontFamily: 'inherit' }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-dark mb-2.5">المنصب</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-dark mb-2 sm:mb-2.5" style={{ fontFamily: 'inherit' }}>المنصب</label>
                   <input
                     type="text"
                     value={formData.position}
                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    style={{ fontFamily: 'inherit' }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-dark mb-2.5">رقم الرخصة</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-dark mb-2 sm:mb-2.5" style={{ fontFamily: 'inherit' }}>رقم الرخصة</label>
                   <input
                     type="text"
                     value={formData.license_number}
                     onChange={(e) => setFormData({ ...formData, license_number: e.target.value })}
-                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                    style={{ fontFamily: 'inherit' }}
                   />
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
                   <button
                     onClick={handleUpdateProfile}
-                    className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30 w-full sm:w-auto"
+                    style={{ fontFamily: 'inherit' }}
                   >
-                    <CheckIcon className="h-5 w-5" />
-                    حفظ
+                    <CheckIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span>حفظ</span>
                   </button>
                   <button
                     onClick={() => {
@@ -296,73 +312,74 @@ export default function ProfilePage() {
                         license_number: user.license_number || '',
                       });
                     }}
-                    className="flex items-center gap-2 rounded-lg border-2 border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                    className="flex items-center justify-center gap-2 rounded-lg border-2 border-sky-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20 w-full sm:w-auto"
+                    style={{ fontFamily: 'inherit' }}
                   >
-                    <XMarkIcon className="h-5 w-5" />
-                    إلغاء
+                    <XMarkIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span>إلغاء</span>
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-5">
+              <div className="space-y-4 sm:space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-dark mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
                     البريد الإلكتروني
                   </label>
-                  <p className="text-sm font-semibold text-dark leading-relaxed">{user.email || 'غير محدد'}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-dark leading-relaxed break-words" style={{ fontFamily: 'inherit' }}>{user.email || 'غير محدد'}</p>
                 </div>
 
                 {user.phone_number && (
                   <div>
-                    <label className="block text-sm font-semibold text-dark mb-2">
+                    <label className="block text-xs sm:text-sm font-semibold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
                       رقم الهاتف
                     </label>
-                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.phone_number}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-dark leading-relaxed break-words" style={{ fontFamily: 'inherit' }}>{user.phone_number}</p>
                   </div>
                 )}
 
                 {user.address && (
                   <div>
-                    <label className="block text-sm font-semibold text-dark mb-2">
+                    <label className="block text-xs sm:text-sm font-semibold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
                       العنوان
                     </label>
-                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.address}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-dark leading-relaxed break-words" style={{ fontFamily: 'inherit' }}>{user.address}</p>
                   </div>
                 )}
 
                 {user.university_name && (
                   <div>
-                    <label className="block text-sm font-semibold text-dark mb-2">
+                    <label className="block text-xs sm:text-sm font-semibold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
                       الجامعة
                     </label>
-                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.university_name}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-dark leading-relaxed break-words" style={{ fontFamily: 'inherit' }}>{user.university_name}</p>
                   </div>
                 )}
 
                 {user.department && (
                   <div>
-                    <label className="block text-sm font-semibold text-dark mb-2">
+                    <label className="block text-xs sm:text-sm font-semibold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
                       القسم
                     </label>
-                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.department}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-dark leading-relaxed break-words" style={{ fontFamily: 'inherit' }}>{user.department}</p>
                   </div>
                 )}
 
                 {user.position && (
                   <div>
-                    <label className="block text-sm font-semibold text-dark mb-2">
+                    <label className="block text-xs sm:text-sm font-semibold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
                       المنصب
                     </label>
-                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.position}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-dark leading-relaxed break-words" style={{ fontFamily: 'inherit' }}>{user.position}</p>
                   </div>
                 )}
 
                 {user.license_number && (
                   <div>
-                    <label className="block text-sm font-semibold text-dark mb-2">
+                    <label className="block text-xs sm:text-sm font-semibold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
                       رقم الرخصة
                     </label>
-                    <p className="text-sm font-semibold text-dark leading-relaxed">{user.license_number}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-dark leading-relaxed break-words" style={{ fontFamily: 'inherit' }}>{user.license_number}</p>
                   </div>
                 )}
               </div>
@@ -370,26 +387,27 @@ export default function ProfilePage() {
           </div>
 
           {/* Security Settings */}
-          <div className="rounded-lg bg-white border border-sky-100 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>الأمان</h3>
+          <div className="rounded-lg bg-white border border-sky-100 p-4 sm:p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-5">
+              <h3 className="text-base sm:text-lg font-semibold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>الأمان</h3>
               <button
                 onClick={() => setShowPasswordModal(true)}
-                className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                className="flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30 w-full sm:w-auto"
+                style={{ fontFamily: 'inherit' }}
               >
-                <KeyIcon className="h-5 w-5" />
-                تغيير كلمة المرور
+                <KeyIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span>تغيير كلمة المرور</span>
               </button>
             </div>
 
-            <div className="space-y-4 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-dark-lighter">كلمة المرور</span>
-                <span className="font-semibold text-dark">••••••••</span>
+            <div className="space-y-3 sm:space-y-4 text-xs sm:text-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
+                <span className="text-dark-lighter font-medium" style={{ fontFamily: 'inherit' }}>كلمة المرور</span>
+                <span className="font-semibold text-dark" style={{ fontFamily: 'inherit' }}>••••••••</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-dark-lighter">حالة الحساب</span>
-                <span className="rounded-full bg-sky-500 px-3 py-1 text-xs font-medium text-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
+                <span className="text-dark-lighter font-medium" style={{ fontFamily: 'inherit' }}>حالة الحساب</span>
+                <span className="rounded-full bg-sky-500 px-2 sm:px-3 py-1 text-xs font-medium text-white inline-block" style={{ fontFamily: 'inherit' }}>
                   نشط
                 </span>
               </div>
@@ -400,13 +418,13 @@ export default function ProfilePage() {
 
       {/* Change Password Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white border border-sky-100 p-6 shadow-xl">
-            <h3 className="text-xl font-semibold text-dark mb-5" style={{ fontFamily: 'inherit' }}>تغيير كلمة المرور</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/50 p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-md rounded-lg bg-white border border-sky-100 p-4 sm:p-6 shadow-xl my-auto">
+            <h3 className="text-lg sm:text-xl font-semibold text-dark mb-4 sm:mb-5" style={{ fontFamily: 'inherit' }}>تغيير كلمة المرور</h3>
 
-            <div className="space-y-5">
+            <div className="space-y-4 sm:space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-dark mb-2.5">
+                <label className="block text-xs sm:text-sm font-semibold text-dark mb-2 sm:mb-2.5" style={{ fontFamily: 'inherit' }}>
                   كلمة المرور الحالية <span className="text-sky-600">*</span>
                 </label>
                 <input
@@ -419,12 +437,13 @@ export default function ProfilePage() {
                     })
                   }
                   required
-                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                  style={{ fontFamily: 'inherit' }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-dark mb-2.5">
+                <label className="block text-xs sm:text-sm font-semibold text-dark mb-2 sm:mb-2.5" style={{ fontFamily: 'inherit' }}>
                   كلمة المرور الجديدة <span className="text-sky-600">*</span>
                 </label>
                 <input
@@ -435,12 +454,13 @@ export default function ProfilePage() {
                   }
                   required
                   minLength={6}
-                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                  style={{ fontFamily: 'inherit' }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-dark mb-2.5">
+                <label className="block text-xs sm:text-sm font-semibold text-dark mb-2 sm:mb-2.5" style={{ fontFamily: 'inherit' }}>
                   تأكيد كلمة المرور الجديدة <span className="text-sky-600">*</span>
                 </label>
                 <input
@@ -451,15 +471,17 @@ export default function ProfilePage() {
                   }
                   required
                   minLength={6}
-                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                  style={{ fontFamily: 'inherit' }}
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-5 sm:mt-6">
               <button
                 onClick={handleChangePassword}
-                className="flex-1 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                className="flex-1 rounded-lg bg-sky-500 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                style={{ fontFamily: 'inherit' }}
               >
                 تغيير
               </button>
@@ -472,7 +494,8 @@ export default function ProfilePage() {
                     confirm_password: '',
                   });
                 }}
-                className="flex-1 rounded-lg border-2 border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                className="flex-1 rounded-lg border-2 border-sky-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                style={{ fontFamily: 'inherit' }}
               >
                 إلغاء
               </button>

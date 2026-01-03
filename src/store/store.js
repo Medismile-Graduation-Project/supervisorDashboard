@@ -7,6 +7,7 @@ import evaluationsSlice from './slices/evaluationsSlice';
 import contentSlice from './slices/contentSlice';
 import reportsSlice from './slices/reportsSlice';
 import notificationsSlice from './slices/notificationsSlice';
+import supportSlice from './slices/supportSlice';
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ export const store = configureStore({
     content: contentSlice,
     reports: reportsSlice,
     notifications: notificationsSlice,
+    support: supportSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

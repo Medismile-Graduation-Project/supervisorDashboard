@@ -39,19 +39,19 @@ const priorityLabels = {
 };
 
 const priorityColors = {
-  low: 'bg-green-100 text-green-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  high: 'bg-orange-100 text-orange-800',
-  urgent: 'bg-red-100 text-red-800',
+  low: 'bg-sky-50 text-sky-700',
+  medium: 'bg-sky-100 text-sky-800',
+  high: 'bg-sky-300 text-sky-900',
+  urgent: 'bg-sky-500 text-white',
 };
 
 const statusColors = {
-  new: 'bg-gray-100 text-gray-800',
-  pending_assignment: 'bg-blue-100 text-blue-800',
-  assigned: 'bg-purple-100 text-purple-800',
-  in_progress: 'bg-sky-100 text-sky-800',
-  completed: 'bg-green-100 text-green-800',
-  closed: 'bg-gray-200 text-gray-600',
+  new: 'bg-sky-50 text-sky-700',
+  pending_assignment: 'bg-sky-100 text-sky-800',
+  assigned: 'bg-sky-200 text-sky-800',
+  in_progress: 'bg-sky-400 text-white',
+  completed: 'bg-sky-500 text-white',
+  closed: 'bg-dark-lighter text-light',
 };
 
 export default function CaseDetailsPage() {
@@ -201,7 +201,9 @@ export default function CaseDetailsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-sky-500 border-r-transparent"></div>
-          <p className="mt-4 text-sm text-dark-lighter">جاري تحميل الحالة...</p>
+          <p className="mt-4 text-sm font-semibold text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
+            جاري تحميل الحالة...
+          </p>
         </div>
       </div>
     );
@@ -210,10 +212,13 @@ export default function CaseDetailsPage() {
   if (!currentCase) {
     return (
       <div className="text-center py-12">
-        <p className="text-dark-lighter">الحالة غير موجودة</p>
+        <p className="text-base font-semibold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
+          الحالة غير موجودة
+        </p>
         <button
           onClick={() => router.push('/dashboard/cases')}
-          className="mt-4 text-sky-600 hover:text-sky-700"
+          className="mt-4 rounded-lg bg-sky-400 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors"
+          style={{ fontFamily: 'inherit' }}
         >
           العودة إلى قائمة الحالات
         </button>
@@ -231,71 +236,76 @@ export default function CaseDetailsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push('/dashboard/cases')}
-            className="text-dark-lighter hover:text-dark"
-          >
-            <ArrowRightIcon className="h-6 w-6" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-dark">
-              {isEditing ? 'تعديل الحالة' : currentCase.title}
-            </h1>
-            <p className="mt-1 text-sm text-dark-lighter">
-              {currentCase.patient?.first_name} {currentCase.patient?.last_name}
-            </p>
+      {/* Page Header */}
+      <div className="mb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/dashboard/cases')}
+              className="flex items-center justify-center h-10 w-10 rounded-lg border border-sky-200 bg-white text-dark-lighter hover:text-dark hover:bg-sky-50 hover:border-sky-300 transition-all focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+            >
+              <ArrowRightIcon className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
+                {isEditing ? 'تعديل الحالة' : currentCase.title}
+              </h1>
+              <p className="text-sm sm:text-base text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
+                {currentCase.patient?.first_name} {currentCase.patient?.last_name}
+              </p>
+            </div>
           </div>
+          {!isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 rounded-lg bg-sky-400 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors"
+              style={{ fontFamily: 'inherit' }}
+            >
+              <PencilIcon className="h-5 w-5" />
+              تعديل
+            </button>
+          )}
         </div>
-        {!isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
-          >
-            <PencilIcon className="h-5 w-5" />
-            تعديل
-          </button>
-        )}
       </div>
 
       {/* Status and Priority Badges */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 flex-wrap">
         <span
-          className={`rounded-full px-3 py-1 text-sm font-medium ${
+          className={`rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${
             statusColors[currentCase.status] || statusColors.new
           }`}
+          style={{ fontFamily: 'inherit' }}
         >
           {statusLabels[currentCase.status] || currentCase.status}
         </span>
         <span
-          className={`rounded-full px-3 py-1 text-sm font-medium ${
+          className={`rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${
             priorityColors[currentCase.priority] || priorityColors.medium
           }`}
+          style={{ fontFamily: 'inherit' }}
         >
           {priorityLabels[currentCase.priority] || currentCase.priority}
         </span>
         {currentCase.is_public && (
-          <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+          <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 whitespace-nowrap" style={{ fontFamily: 'inherit' }}>
             عامة
           </span>
         )}
         {pendingRequests.length > 0 && (
-          <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800">
+          <span className="rounded-full bg-sky-200 px-3 py-1 text-xs font-semibold text-sky-800 whitespace-nowrap" style={{ fontFamily: 'inherit' }}>
             {pendingRequests.length} طلب إسناد
           </span>
         )}
         {sessionsNeedingReview.length > 0 && (
-          <span className="rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-800">
+          <span className="rounded-full bg-sky-300 px-3 py-1 text-xs font-semibold text-sky-900 whitespace-nowrap" style={{ fontFamily: 'inherit' }}>
             {sessionsNeedingReview.length} جلسة تحتاج مراجعة
           </span>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-light-gray">
-        <nav className="flex gap-6">
+      <div className="border-b border-sky-100">
+        <nav className="flex gap-6 overflow-x-auto">
           {[
             { id: 'details', label: 'التفاصيل' },
             { id: 'assignments', label: 'طلبات الإسناد', badge: pendingRequests.length },
@@ -305,15 +315,16 @@ export default function CaseDetailsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`pb-3 px-1 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 pb-3 px-1 text-sm font-semibold transition-colors whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'border-b-2 border-sky-600 text-sky-600'
+                  ? 'border-b-2 border-sky-500 text-sky-600'
                   : 'text-dark-lighter hover:text-dark'
               }`}
+              style={{ fontFamily: 'inherit' }}
             >
               {tab.label}
               {tab.badge > 0 && (
-                <span className="mr-2 rounded-full bg-sky-100 px-2 py-0.5 text-xs text-sky-800">
+                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
                   {tab.badge}
                 </span>
               )}
@@ -327,9 +338,9 @@ export default function CaseDetailsPage() {
         {activeTab === 'details' && (
           <div className="space-y-6">
             {isEditing ? (
-              <div className="rounded-lg bg-light border border-light-gray p-6 space-y-4">
+              <div className="rounded-lg bg-white border border-sky-100 p-5 sm:p-6 shadow-sm space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-2">
+                  <label className="block text-sm font-semibold text-dark mb-2.5" style={{ fontFamily: 'inherit' }}>
                     العنوان
                   </label>
                   <input
@@ -338,11 +349,12 @@ export default function CaseDetailsPage() {
                     onChange={(e) =>
                       setEditForm({ ...editForm, title: e.target.value })
                     }
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/50 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
+                    style={{ fontFamily: 'inherit' }}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-2">
+                  <label className="block text-sm font-semibold text-dark mb-2.5" style={{ fontFamily: 'inherit' }}>
                     الوصف
                   </label>
                   <textarea
@@ -351,12 +363,13 @@ export default function CaseDetailsPage() {
                       setEditForm({ ...editForm, description: e.target.value })
                     }
                     rows={6}
-                    className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/50 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all resize-none"
+                    style={{ fontFamily: 'inherit' }}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-dark mb-2">
+                    <label className="block text-sm font-semibold text-dark mb-2.5" style={{ fontFamily: 'inherit' }}>
                       الأولوية
                     </label>
                     <select
@@ -364,7 +377,8 @@ export default function CaseDetailsPage() {
                       onChange={(e) =>
                         setEditForm({ ...editForm, priority: e.target.value })
                       }
-                      className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      className="w-full rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
+                      style={{ fontFamily: 'inherit' }}
                     >
                       {Object.entries(priorityLabels).map(([value, label]) => (
                         <option key={value} value={value}>
@@ -374,7 +388,7 @@ export default function CaseDetailsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-dark mb-2">
+                    <label className="block text-sm font-semibold text-dark mb-2.5" style={{ fontFamily: 'inherit' }}>
                       حالة الحالة
                     </label>
                     <select
@@ -382,7 +396,8 @@ export default function CaseDetailsPage() {
                       onChange={(e) =>
                         setEditForm({ ...editForm, status: e.target.value })
                       }
-                      className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      className="w-full rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
+                      style={{ fontFamily: 'inherit' }}
                     >
                       {Object.entries(statusLabels).map(([value, label]) => (
                         <option key={value} value={value}>
@@ -392,7 +407,7 @@ export default function CaseDetailsPage() {
                     </select>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <input
                     type="checkbox"
                     id="is_public"
@@ -400,16 +415,17 @@ export default function CaseDetailsPage() {
                     onChange={(e) =>
                       setEditForm({ ...editForm, is_public: e.target.checked })
                     }
-                    className="h-4 w-4 rounded border-dark-lighter text-sky-600 focus:ring-sky-500"
+                    className="h-4 w-4 rounded border-sky-300 text-sky-500 focus:ring-sky-400"
                   />
-                  <label htmlFor="is_public" className="text-sm text-dark">
+                  <label htmlFor="is_public" className="text-sm font-medium text-dark" style={{ fontFamily: 'inherit' }}>
                     جعل الحالة عامة (متاحة للطلاب)
                   </label>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-2">
                   <button
                     onClick={handleUpdateCase}
-                    className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+                    className="rounded-lg bg-sky-400 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors"
+                    style={{ fontFamily: 'inherit' }}
                   >
                     حفظ التغييرات
                   </button>
@@ -424,7 +440,8 @@ export default function CaseDetailsPage() {
                         status: currentCase.status || '',
                       });
                     }}
-                    className="rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
+                    className="rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-dark hover:bg-sky-50 hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
+                    style={{ fontFamily: 'inherit' }}
                   >
                     إلغاء
                   </button>
@@ -433,24 +450,29 @@ export default function CaseDetailsPage() {
             ) : (
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2 space-y-6">
-                  <div className="rounded-lg bg-light border border-light-gray p-6">
-                    <h2 className="text-lg font-semibold text-dark mb-4">وصف الحالة</h2>
-                    <p className="text-dark-lighter whitespace-pre-wrap">
+                  <div className="rounded-lg bg-white border border-sky-100 p-5 sm:p-6 shadow-sm">
+                    <h2 className="text-lg sm:text-xl font-bold text-dark mb-4" style={{ fontFamily: 'inherit' }}>
+                      وصف الحالة
+                    </h2>
+                    <p className="text-sm sm:text-base text-dark-lighter leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'inherit' }}>
                       {currentCase.description || 'لا يوجد وصف'}
                     </p>
                   </div>
 
                   {/* Quick Actions */}
                   {currentCase.status !== 'closed' && (
-                    <div className="rounded-lg bg-light border border-light-gray p-6">
-                      <h2 className="text-lg font-semibold text-dark mb-4">إجراءات سريعة</h2>
+                    <div className="rounded-lg bg-white border border-sky-100 p-5 sm:p-6 shadow-sm">
+                      <h2 className="text-lg sm:text-xl font-bold text-dark mb-4" style={{ fontFamily: 'inherit' }}>
+                        إجراءات سريعة
+                      </h2>
                       <div className="flex flex-wrap gap-3">
                         {getNextStatus(currentCase.status) && (
                           <button
                             onClick={() =>
                               handleStatusChange(getNextStatus(currentCase.status))
                             }
-                            className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 transition-colors"
+                            className="flex items-center gap-2 rounded-lg bg-sky-400 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors"
+                            style={{ fontFamily: 'inherit' }}
                           >
                             <ClockIcon className="h-5 w-5" />
                             تغيير إلى {statusLabels[getNextStatus(currentCase.status)]}
@@ -459,7 +481,8 @@ export default function CaseDetailsPage() {
                         {currentCase.status === 'completed' && (
                           <button
                             onClick={() => handleStatusChange('closed')}
-                            className="flex items-center gap-2 rounded-lg bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
+                            className="flex items-center gap-2 rounded-lg bg-dark-lighter px-4 py-2.5 text-sm font-semibold text-light hover:bg-dark focus:outline-none focus:ring-2 focus:ring-dark-lighter focus:ring-offset-2 transition-colors"
+                            style={{ fontFamily: 'inherit' }}
                           >
                             إغلاق الحالة
                           </button>
@@ -470,26 +493,34 @@ export default function CaseDetailsPage() {
                 </div>
 
                 <div className="space-y-6">
-                  <div className="rounded-lg bg-light border border-light-gray p-6">
-                    <h2 className="text-lg font-semibold text-dark mb-4">معلومات الحالة</h2>
-                    <div className="space-y-3 text-sm">
-                      <div>
-                        <span className="text-dark-lighter">المريض:</span>
-                        <p className="font-medium text-dark">
+                  <div className="rounded-lg bg-white border border-sky-100 p-5 sm:p-6 shadow-sm">
+                    <h2 className="text-lg sm:text-xl font-bold text-dark mb-4" style={{ fontFamily: 'inherit' }}>
+                      معلومات الحالة
+                    </h2>
+                    <div className="space-y-4 text-sm">
+                      <div className="border-b border-sky-100 pb-3">
+                        <span className="block text-xs font-medium text-dark-lighter mb-1.5" style={{ fontFamily: 'inherit' }}>
+                          المريض:
+                        </span>
+                        <p className="text-sm font-semibold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>
                           {currentCase.patient?.first_name} {currentCase.patient?.last_name}
                         </p>
                       </div>
                       {currentCase.student && (
-                        <div>
-                          <span className="text-dark-lighter">الطالب المسند:</span>
-                          <p className="font-medium text-dark">
+                        <div className="border-b border-sky-100 pb-3">
+                          <span className="block text-xs font-medium text-dark-lighter mb-1.5" style={{ fontFamily: 'inherit' }}>
+                            الطالب المسند:
+                          </span>
+                          <p className="text-sm font-semibold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>
                             {currentCase.student?.first_name} {currentCase.student?.last_name}
                           </p>
                         </div>
                       )}
-                      <div>
-                        <span className="text-dark-lighter">تاريخ الإنشاء:</span>
-                        <p className="font-medium text-dark">
+                      <div className="border-b border-sky-100 pb-3">
+                        <span className="block text-xs font-medium text-dark-lighter mb-1.5" style={{ fontFamily: 'inherit' }}>
+                          تاريخ الإنشاء:
+                        </span>
+                        <p className="text-sm font-semibold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>
                           {new Date(currentCase.created_at).toLocaleDateString('ar-SA', {
                             year: 'numeric',
                             month: 'long',
@@ -499,8 +530,10 @@ export default function CaseDetailsPage() {
                       </div>
                       {currentCase.updated_at && (
                         <div>
-                          <span className="text-dark-lighter">آخر تحديث:</span>
-                          <p className="font-medium text-dark">
+                          <span className="block text-xs font-medium text-dark-lighter mb-1.5" style={{ fontFamily: 'inherit' }}>
+                            آخر تحديث:
+                          </span>
+                          <p className="text-sm font-semibold text-dark leading-relaxed" style={{ fontFamily: 'inherit' }}>
                             {new Date(currentCase.updated_at).toLocaleDateString('ar-SA', {
                               year: 'numeric',
                               month: 'long',
@@ -518,31 +551,42 @@ export default function CaseDetailsPage() {
         )}
 
         {activeTab === 'assignments' && (
-          <div className="rounded-lg bg-light border border-light-gray">
+          <div className="rounded-lg bg-white border border-sky-100 overflow-hidden shadow-sm">
             {pendingRequests.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-dark-lighter">لا توجد طلبات إسناد معلقة</p>
+              <div className="p-12 text-center">
+                <p className="text-base font-semibold text-dark" style={{ fontFamily: 'inherit' }}>
+                  لا توجد طلبات إسناد معلقة
+                </p>
+                <p className="mt-2 text-sm text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
+                  لا توجد طلبات إسناد معلقة لهذه الحالة
+                </p>
               </div>
             ) : (
-              <div className="divide-y divide-light-gray">
+              <div className="divide-y divide-sky-100">
                 {pendingRequests.map((request) => (
-                  <div key={request.id} className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-dark">
+                  <div key={request.id} className="p-5 sm:p-6 hover:bg-sky-50 transition-colors">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5 mb-3 flex-wrap">
+                          <h3 className="text-base sm:text-lg font-semibold text-dark" style={{ fontFamily: 'inherit' }}>
                             {request.student?.first_name} {request.student?.last_name}
                           </h3>
-                          <span className="text-sm text-dark-lighter">
+                          <span className="text-xs sm:text-sm text-dark-lighter" style={{ fontFamily: 'inherit' }}>
                             {request.student?.email}
                           </span>
                         </div>
-                        <p className="text-sm text-dark-lighter mb-3">{request.message}</p>
-                        <p className="text-xs text-dark-lighter">
-                          {new Date(request.created_at).toLocaleDateString('ar-SA')}
+                        <p className="text-sm text-dark-lighter mb-4 leading-relaxed" style={{ fontFamily: 'inherit' }}>
+                          {request.message}
+                        </p>
+                        <p className="text-xs text-dark-lighter" style={{ fontFamily: 'inherit' }}>
+                          {new Date(request.created_at).toLocaleDateString('ar-SA', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-shrink-0">
                         <button
                           onClick={() => {
                             setSelectedRequest(request);
@@ -550,7 +594,8 @@ export default function CaseDetailsPage() {
                             setAssignmentResponse('');
                             setShowAssignmentModal(true);
                           }}
-                          className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                          className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors"
+                          style={{ fontFamily: 'inherit' }}
                         >
                           <CheckCircleIcon className="h-5 w-5" />
                           قبول
@@ -562,7 +607,8 @@ export default function CaseDetailsPage() {
                             setAssignmentResponse('');
                             setShowAssignmentModal(true);
                           }}
-                          className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                          className="flex items-center gap-2 rounded-lg bg-dark-lighter px-4 py-2.5 text-sm font-semibold text-light hover:bg-dark focus:outline-none focus:ring-2 focus:ring-dark-lighter focus:ring-offset-2 transition-colors"
+                          style={{ fontFamily: 'inherit' }}
                         >
                           <XCircleIcon className="h-5 w-5" />
                           رفض
@@ -577,27 +623,33 @@ export default function CaseDetailsPage() {
         )}
 
         {activeTab === 'sessions' && (
-          <div className="rounded-lg bg-light border border-light-gray">
+          <div className="rounded-lg bg-white border border-sky-100 overflow-hidden shadow-sm">
             {!Array.isArray(sessions) || sessions.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-dark-lighter">لا توجد جلسات علاج</p>
+              <div className="p-12 text-center">
+                <p className="text-base font-semibold text-dark" style={{ fontFamily: 'inherit' }}>
+                  لا توجد جلسات علاج
+                </p>
+                <p className="mt-2 text-sm text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
+                  لم يتم إضافة أي جلسات علاج لهذه الحالة بعد
+                </p>
               </div>
             ) : (
-              <div className="divide-y divide-light-gray">
+              <div className="divide-y divide-sky-100">
                 {sessions.map((session) => (
-                  <div key={session.id} className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <ClipboardDocumentCheckIcon className="h-5 w-5 text-sky-500" />
+                  <div key={session.id} className="p-5 sm:p-6 hover:bg-sky-50 transition-colors">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5 mb-3 flex-wrap">
+                          <ClipboardDocumentCheckIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
                           <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            className={`rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${
                               session.status === 'approved'
-                                ? 'bg-green-100 text-green-800'
+                                ? 'bg-sky-500 text-white'
                                 : session.status === 'rejected'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                                ? 'bg-dark-lighter text-light'
+                                : 'bg-sky-200 text-sky-800'
                             }`}
+                            style={{ fontFamily: 'inherit' }}
                           >
                             {session.status === 'approved'
                               ? 'موافق عليها'
@@ -606,19 +658,25 @@ export default function CaseDetailsPage() {
                               : 'تحتاج مراجعة'}
                           </span>
                         </div>
-                        <p className="text-sm text-dark-lighter mb-3 whitespace-pre-wrap">
+                        <p className="text-sm text-dark-lighter mb-4 leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'inherit' }}>
                           {session.notes}
                         </p>
                         {session.supervisor_feedback && (
-                          <div className="mt-3 p-3 rounded-lg bg-sky-50 border border-sky-100">
-                            <p className="text-xs font-medium text-sky-800 mb-1">
+                          <div className="mt-4 p-4 rounded-lg bg-sky-50 border border-sky-200">
+                            <p className="text-xs font-semibold text-sky-800 mb-2" style={{ fontFamily: 'inherit' }}>
                               ملاحظات المشرف:
                             </p>
-                            <p className="text-sm text-sky-900">{session.supervisor_feedback}</p>
+                            <p className="text-sm text-sky-900 leading-relaxed" style={{ fontFamily: 'inherit' }}>
+                              {session.supervisor_feedback}
+                            </p>
                           </div>
                         )}
-                        <p className="text-xs text-dark-lighter mt-3">
-                          {new Date(session.created_at).toLocaleDateString('ar-SA')}
+                        <p className="text-xs text-dark-lighter mt-4" style={{ fontFamily: 'inherit' }}>
+                          {new Date(session.created_at).toLocaleDateString('ar-SA', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
                         </p>
                       </div>
                       {(session.status === 'completed' || session.status === 'needs_review') && (
@@ -630,7 +688,8 @@ export default function CaseDetailsPage() {
                             await dispatch(fetchSessionById(session.id));
                             setShowSessionModal(true);
                           }}
-                          className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 transition-colors"
+                          className="flex items-center gap-2 rounded-lg bg-sky-400 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors flex-shrink-0"
+                          style={{ fontFamily: 'inherit' }}
                         >
                           مراجعة
                         </button>
@@ -644,22 +703,29 @@ export default function CaseDetailsPage() {
         )}
 
         {activeTab === 'history' && (
-          <div className="rounded-lg bg-light border border-light-gray">
+          <div className="rounded-lg bg-white border border-sky-100 overflow-hidden shadow-sm">
             {!caseHistory || caseHistory.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-dark-lighter">لا يوجد سجل</p>
+              <div className="p-12 text-center">
+                <p className="text-base font-semibold text-dark" style={{ fontFamily: 'inherit' }}>
+                  لا يوجد سجل
+                </p>
+                <p className="mt-2 text-sm text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
+                  لا يوجد سجل أنشطة لهذه الحالة
+                </p>
               </div>
             ) : (
-              <div className="divide-y divide-light-gray">
+              <div className="divide-y divide-sky-100">
                 {Array.isArray(caseHistory) && caseHistory.map((item, index) => (
-                  <div key={item.id || index} className="p-6">
+                  <div key={item.id || index} className="p-5 sm:p-6 hover:bg-sky-50 transition-colors">
                     <div className="flex items-start gap-4">
-                      <div className="shrink-0">
-                        <div className="h-2 w-2 rounded-full bg-sky-500 mt-2"></div>
+                      <div className="shrink-0 mt-1.5">
+                        <div className="h-2.5 w-2.5 rounded-full bg-sky-500"></div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-dark">{item.description || item.action || 'حدث'}</p>
-                        <p className="text-xs text-dark-lighter mt-1">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm sm:text-base font-semibold text-dark leading-relaxed mb-2" style={{ fontFamily: 'inherit' }}>
+                          {item.description || item.action || 'حدث'}
+                        </p>
+                        <p className="text-xs text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
                           {item.performed_by?.first_name || item.user?.first_name || ''} {item.performed_by?.last_name || item.user?.last_name || ''} -{' '}
                           {new Date(item.created_at || item.timestamp).toLocaleDateString('ar-SA', {
                             year: 'numeric',
@@ -682,20 +748,21 @@ export default function CaseDetailsPage() {
       {/* Assignment Modal */}
       {showAssignmentModal && selectedRequest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-light p-6">
-            <h3 className="text-lg font-semibold text-dark mb-4">
+          <div className="w-full max-w-md rounded-lg bg-white border border-sky-100 p-5 sm:p-6 shadow-lg">
+            <h3 className="text-lg sm:text-xl font-bold text-dark mb-4" style={{ fontFamily: 'inherit' }}>
               {assignmentAction === 'accepted' ? 'قبول' : 'رفض'} طلب الإسناد
             </h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-dark mb-2">
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-dark mb-2.5" style={{ fontFamily: 'inherit' }}>
                 رد المشرف (اختياري)
               </label>
               <textarea
                 value={assignmentResponse}
                 onChange={(e) => setAssignmentResponse(e.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/50 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all resize-none"
                 placeholder="أضف ملاحظاتك..."
+                style={{ fontFamily: 'inherit' }}
               />
             </div>
             <div className="flex gap-3">
@@ -703,11 +770,12 @@ export default function CaseDetailsPage() {
                 onClick={() => {
                   handleRespondToAssignment(selectedRequest.id, assignmentAction);
                 }}
-                className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors ${
+                className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                   assignmentAction === 'accepted'
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
+                    ? 'bg-sky-500 hover:bg-sky-600 focus:ring-sky-400'
+                    : 'bg-dark-lighter hover:bg-dark focus:ring-dark-lighter'
                 }`}
+                style={{ fontFamily: 'inherit' }}
               >
                 تأكيد {assignmentAction === 'accepted' ? 'القبول' : 'الرفض'}
               </button>
@@ -717,7 +785,8 @@ export default function CaseDetailsPage() {
                   setSelectedRequest(null);
                   setAssignmentResponse('');
                 }}
-                className="flex-1 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
+                className="flex-1 rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-dark hover:bg-sky-50 hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
+                style={{ fontFamily: 'inherit' }}
               >
                 إلغاء
               </button>
@@ -729,22 +798,27 @@ export default function CaseDetailsPage() {
       {/* Session Review Modal */}
       {showSessionModal && selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-lg bg-light p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-dark mb-4">مراجعة الجلسة</h3>
+          <div className="w-full max-w-2xl rounded-lg bg-white border border-sky-100 p-5 sm:p-6 max-h-[90vh] overflow-y-auto shadow-lg">
+            <h3 className="text-lg sm:text-xl font-bold text-dark mb-5" style={{ fontFamily: 'inherit' }}>
+              مراجعة الجلسة
+            </h3>
             
             {/* Session Details */}
-            <div className="space-y-4 mb-4">
+            <div className="space-y-4 mb-5">
               {/* Status */}
-              <div className="p-4 rounded-lg bg-light-gray">
-                <p className="text-sm font-medium text-dark-lighter mb-2">حالة الجلسة:</p>
+              <div className="p-4 rounded-lg bg-sky-50 border border-sky-100">
+                <p className="text-xs font-semibold text-dark-lighter mb-2.5" style={{ fontFamily: 'inherit' }}>
+                  حالة الجلسة:
+                </p>
                 <span
-                  className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${
+                  className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
                     (currentSession?.status || selectedSession.status) === 'approved'
-                      ? 'bg-green-100 text-green-800'
+                      ? 'bg-sky-500 text-white'
                       : (currentSession?.status || selectedSession.status) === 'rejected'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-yellow-100 text-yellow-800'
+                      ? 'bg-dark-lighter text-light'
+                      : 'bg-sky-200 text-sky-800'
                   }`}
+                  style={{ fontFamily: 'inherit' }}
                 >
                   {(currentSession?.status || selectedSession.status) === 'approved'
                     ? 'موافق عليها'
@@ -755,17 +829,21 @@ export default function CaseDetailsPage() {
               </div>
 
               {/* Notes */}
-              <div className="p-4 rounded-lg bg-light-gray">
-                <p className="text-sm font-medium text-dark-lighter mb-2">ملاحظات الطالب:</p>
-                <p className="text-sm text-dark whitespace-pre-wrap">
+              <div className="p-4 rounded-lg bg-sky-50 border border-sky-100">
+                <p className="text-xs font-semibold text-dark-lighter mb-2.5" style={{ fontFamily: 'inherit' }}>
+                  ملاحظات الطالب:
+                </p>
+                <p className="text-sm text-dark leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'inherit' }}>
                   {currentSession?.notes || selectedSession.notes || 'لا توجد ملاحظات'}
                 </p>
               </div>
 
               {/* Attachments */}
               {currentSession?.attachments && currentSession.attachments.length > 0 && (
-                <div className="p-4 rounded-lg bg-light-gray">
-                  <p className="text-sm font-medium text-dark-lighter mb-2">المرفقات:</p>
+                <div className="p-4 rounded-lg bg-sky-50 border border-sky-100">
+                  <p className="text-xs font-semibold text-dark-lighter mb-2.5" style={{ fontFamily: 'inherit' }}>
+                    المرفقات:
+                  </p>
                   <div className="space-y-2">
                     {currentSession.attachments.map((attachment, index) => (
                       <a
@@ -773,7 +851,8 @@ export default function CaseDetailsPage() {
                         href={attachment.url || attachment}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-sky-600 hover:text-sky-700"
+                        className="flex items-center gap-2 text-sm text-sky-600 hover:text-sky-700 transition-colors"
+                        style={{ fontFamily: 'inherit' }}
                       >
                         <span>📎</span>
                         <span>{attachment.name || attachment.filename || `مرفق ${index + 1}`}</span>
@@ -785,9 +864,11 @@ export default function CaseDetailsPage() {
 
               {/* Treatment Sequence */}
               {currentSession?.treatment_sequence && (
-                <div className="p-4 rounded-lg bg-light-gray">
-                  <p className="text-sm font-medium text-dark-lighter mb-2">التسلسل العلاجي:</p>
-                  <p className="text-sm text-dark whitespace-pre-wrap">
+                <div className="p-4 rounded-lg bg-sky-50 border border-sky-100">
+                  <p className="text-xs font-semibold text-dark-lighter mb-2.5" style={{ fontFamily: 'inherit' }}>
+                    التسلسل العلاجي:
+                  </p>
+                  <p className="text-sm text-dark leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'inherit' }}>
                     {currentSession.treatment_sequence}
                   </p>
                 </div>
@@ -795,16 +876,17 @@ export default function CaseDetailsPage() {
             </div>
 
             {/* Supervisor Feedback */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-dark mb-2">
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-dark mb-2.5" style={{ fontFamily: 'inherit' }}>
                 ملاحظات المشرف
               </label>
               <textarea
                 value={sessionFeedback}
                 onChange={(e) => setSessionFeedback(e.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-dark-lighter bg-light px-4 py-2 text-dark focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/50 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all resize-none"
                 placeholder="أضف ملاحظاتك على الجلسة..."
+                style={{ fontFamily: 'inherit' }}
               />
             </div>
 
@@ -812,14 +894,16 @@ export default function CaseDetailsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => handleReviewSession(selectedSession.id, 'approved')}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors"
+                style={{ fontFamily: 'inherit' }}
               >
                 <CheckCircleIcon className="h-5 w-5" />
                 موافقة
               </button>
               <button
                 onClick={() => handleReviewSession(selectedSession.id, 'rejected')}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-dark-lighter px-4 py-2.5 text-sm font-semibold text-light hover:bg-dark focus:outline-none focus:ring-2 focus:ring-dark-lighter focus:ring-offset-2 transition-colors"
+                style={{ fontFamily: 'inherit' }}
               >
                 <XCircleIcon className="h-5 w-5" />
                 رفض
@@ -830,7 +914,8 @@ export default function CaseDetailsPage() {
                   setSelectedSession(null);
                   setSessionFeedback('');
                 }}
-                className="flex-1 rounded-lg border border-dark-lighter bg-light px-4 py-2 text-sm font-medium text-dark hover:bg-light-gray transition-colors"
+                className="flex-1 rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-dark hover:bg-sky-50 hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
+                style={{ fontFamily: 'inherit' }}
               >
                 إلغاء
               </button>
