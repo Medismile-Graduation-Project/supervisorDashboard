@@ -85,10 +85,21 @@ export default function LoginPage() {
       } else if (login.rejected.match(result)) {
         // معالجة الأخطاء من API
         const errorPayload = result.payload;
-        const errorMessage = errorPayload?.detail || 
-                           errorPayload?.message || 
-                           errorPayload?.error || 
-                           'فشل تسجيل الدخول. يرجى التحقق من البيانات';
+        let errorMessage = 'فشل تسجيل الدخول. يرجى التحقق من البيانات';
+        
+        // معالجة البنية الجديدة للأخطاء
+        if (errorPayload?.message) {
+          errorMessage = errorPayload.message;
+        } else if (errorPayload?.detail) {
+          errorMessage = errorPayload.detail;
+        } else if (errorPayload?.error) {
+          errorMessage = typeof errorPayload.error === 'string' 
+            ? errorPayload.error 
+            : errorPayload.error?.message || errorMessage;
+        } else if (typeof errorPayload === 'string') {
+          errorMessage = errorPayload;
+        }
+        
         toast.error(errorMessage, {
           duration: 4000,
         });

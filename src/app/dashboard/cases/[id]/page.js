@@ -221,12 +221,13 @@ export default function CaseDetailsPage() {
     );
   }
 
-  const pendingRequests = assignmentRequests.filter(
-    (r) => r.status === 'pending' && r.case === params.id
-  );
-  const sessionsNeedingReview = sessions.filter(
-    (s) => s.status === 'completed' || s.status === 'needs_review'
-  );
+  const pendingRequests = Array.isArray(assignmentRequests) 
+    ? assignmentRequests.filter((r) => r.status === 'pending' && r.case === params.id)
+    : [];
+  
+  const sessionsNeedingReview = Array.isArray(sessions)
+    ? sessions.filter((s) => s.status === 'completed' || s.status === 'needs_review')
+    : [];
 
   return (
     <div className="space-y-6">
@@ -299,7 +300,6 @@ export default function CaseDetailsPage() {
             { id: 'details', label: 'التفاصيل' },
             { id: 'assignments', label: 'طلبات الإسناد', badge: pendingRequests.length },
             { id: 'sessions', label: 'الجلسات', badge: sessionsNeedingReview.length },
-            { id: 'history', label: 'التاريخ' },
             { id: 'history', label: 'السجل' },
           ].map((tab) => (
             <button
@@ -578,7 +578,7 @@ export default function CaseDetailsPage() {
 
         {activeTab === 'sessions' && (
           <div className="rounded-lg bg-light border border-light-gray">
-            {sessions.length === 0 ? (
+            {!Array.isArray(sessions) || sessions.length === 0 ? (
               <div className="p-8 text-center">
                 <p className="text-dark-lighter">لا توجد جلسات علاج</p>
               </div>

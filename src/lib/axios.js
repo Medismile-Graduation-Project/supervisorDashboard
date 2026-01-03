@@ -14,7 +14,8 @@ api.interceptors.request.use(
     // الحصول على Token من localStorage
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     
-    if (token) {
+    // إضافة Token إلى Header إذا كان موجوداً ولم يكن موجوداً بالفعل
+    if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
@@ -35,6 +36,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
+      // تجنب إعادة المحاولة لطلبات تسجيل الدخول
+      if (originalRequest.url?.includes('/login') || originalRequest.url?.includes('/token/refresh')) {
+        return Promise.reject(error);
+      }
+
       try {
         // محاولة تجديد Token
         const refreshToken = typeof window !== 'undefined' 
@@ -49,21 +55,40 @@ api.interceptors.response.use(
 
           const { access } = response.data;
           
-          if (typeof window !== 'undefined') {
+          if (access && typeof window !== 'undefined') {
             localStorage.setItem('access_token', access);
+            
+            // تحديث الـ header للطلب الأصلي
+            originalRequest.headers.Authorization = `Bearer ${access}`;
+            
+            // إعادة المحاولة
+            return api(originalRequest);
           }
-
-          originalRequest.headers.Authorization = `Bearer ${access}`;
-          return api(originalRequest);
         }
       } catch (refreshError) {
-        // إذا فشل تجديد Token، إعادة توجيه إلى صفحة تسجيل الدخول
+        // إذا فشل تجديد Token، مسح البيانات وإعادة توجيه
         if (typeof window !== 'undefined') {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
-          window.location.href = '/login';
+          localStorage.removeItem('user');
+          
+          // إعادة توجيه فقط إذا لم نكن في صفحة تسجيل الدخول
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(refreshError);
+      }
+      
+      // إذا لم يكن هناك refresh token، مسح البيانات
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
       }
     }
 

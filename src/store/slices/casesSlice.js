@@ -4,10 +4,37 @@ import api from '@/lib/axios';
 // Async Thunks
 export const fetchCases = createAsyncThunk(
   'cases/fetchCases',
-  async (params = {}, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue, getState }) => {
     try {
-      const response = await api.get('/cases/', { params });
-      return response.data.data;
+      // الحصول على بيانات المستخدم من state
+      const state = getState();
+      const user = state.auth.user;
+      
+      // إضافة supervisor_id و university_id للفلترة
+      const filteredParams = {
+        ...params,
+      };
+      
+      // إضافة supervisor_id إذا كان موجوداً
+      if (user?.id) {
+        filteredParams.supervisor_id = user.id;
+      }
+      
+      // إضافة university_id إذا كان موجوداً (API يتوقع university_id)
+      if (user?.university) {
+        filteredParams.university_id = user.university;
+      }
+      
+      const response = await api.get('/cases/', { params: filteredParams });
+      // API يعيد array مباشرة أو object مع data property
+      const casesData = response.data.data || response.data || [];
+      console.log('Cases API Response:', { 
+        raw: response.data, 
+        processed: casesData,
+        isArray: Array.isArray(casesData),
+        length: Array.isArray(casesData) ? casesData.length : 0
+      });
+      return casesData;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -16,10 +43,26 @@ export const fetchCases = createAsyncThunk(
 
 export const fetchCaseById = createAsyncThunk(
   'cases/fetchCaseById',
-  async (caseId, { rejectWithValue }) => {
+  async (caseId, { rejectWithValue, getState }) => {
     try {
       const response = await api.get(`/cases/${caseId}/`);
-      return response.data.data;
+      const caseData = response.data.data || response.data;
+      
+      // التحقق من أن الحالة تنتمي للمشرف والجامعة الصحيحة
+      const state = getState();
+      const user = state.auth.user;
+      
+      if (user?.id && user?.university) {
+        const matchesSupervisor = caseData.supervisor?.id === user.id || 
+                                 caseData.supervisor_id === user.id;
+        const matchesUniversity = caseData.university_id === user.university;
+        
+        if (!matchesSupervisor || !matchesUniversity) {
+          return rejectWithValue('ليس لديك صلاحية للوصول إلى هذه الحالة');
+        }
+      }
+      
+      return caseData;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -28,9 +71,26 @@ export const fetchCaseById = createAsyncThunk(
 
 export const createCase = createAsyncThunk(
   'cases/createCase',
-  async (caseData, { rejectWithValue }) => {
+  async (caseData, { rejectWithValue, getState }) => {
     try {
-      const response = await api.post('/cases/', caseData);
+      // الحصول على بيانات المستخدم من state
+      const state = getState();
+      const user = state.auth.user;
+      
+      // إضافة supervisor_id و university_id تلقائياً
+      const caseDataWithAuth = {
+        ...caseData,
+      };
+      
+      if (user?.id) {
+        caseDataWithAuth.supervisor_id = user.id;
+      }
+      
+      if (user?.university) {
+        caseDataWithAuth.university_id = user.university;
+      }
+      
+      const response = await api.post('/cases/', caseDataWithAuth);
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -40,8 +100,27 @@ export const createCase = createAsyncThunk(
 
 export const updateCase = createAsyncThunk(
   'cases/updateCase',
-  async ({ caseId, data }, { rejectWithValue }) => {
+  async ({ caseId, data }, { rejectWithValue, getState }) => {
     try {
+      // التحقق من الصلاحيات أولاً
+      const state = getState();
+      const user = state.auth.user;
+      
+      if (user?.id && user?.university) {
+        // جلب الحالة للتحقق من الصلاحيات
+        const caseResponse = await api.get(`/cases/${caseId}/`);
+        const caseData = caseResponse.data.data || caseResponse.data;
+        
+        const matchesSupervisor = caseData.supervisor?.id === user.id || 
+                                 caseData.supervisor_id === user.id;
+        const matchesUniversity = caseData.university_id === user.university;
+        
+        if (!matchesSupervisor || !matchesUniversity) {
+          return rejectWithValue('ليس لديك صلاحية لتحديث هذه الحالة');
+        }
+      }
+      
+      // تحديث الحالة
       const response = await api.patch(`/cases/${caseId}/`, data);
       return response.data.data;
     } catch (error) {
@@ -122,7 +201,8 @@ const casesSlice = createSlice({
       })
       .addCase(fetchCases.fulfilled, (state, action) => {
         state.loading = false;
-        state.cases = action.payload;
+        // التأكد من أن البيانات هي array
+        state.cases = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchCases.rejected, (state, action) => {
         state.loading = false;

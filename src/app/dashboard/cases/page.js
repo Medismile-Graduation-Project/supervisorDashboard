@@ -50,6 +50,7 @@ export default function CasesPage() {
   const router = useRouter();
   const { cases = [], loading, filters } = useAppSelector((state) => state.cases);
   const { assignmentRequests = [] } = useAppSelector((state) => state.cases);
+  const { user } = useAppSelector((state) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [localFilters, setLocalFilters] = useState({
@@ -58,15 +59,42 @@ export default function CasesPage() {
   });
 
   useEffect(() => {
-    dispatch(fetchCases());
-    dispatch(fetchAssignmentRequests({ status: 'pending' }));
-  }, [dispatch]);
+    // التحقق من وجود بيانات المستخدم قبل جلب الحالات
+    if (user?.id && user?.university) {
+      dispatch(fetchCases());
+      dispatch(fetchAssignmentRequests({ status: 'pending' }));
+    }
+  }, [dispatch, user]);
+
+  // Debug: التحقق من البيانات
+  useEffect(() => {
+    console.log('Cases State:', { 
+      cases, 
+      casesLength: cases?.length, 
+      isArray: Array.isArray(cases),
+      loading,
+      user: { id: user?.id, university: user?.university }
+    });
+  }, [cases, loading, user]);
 
   useEffect(() => {
     dispatch(setFilters(localFilters));
   }, [localFilters, dispatch]);
 
   const filteredCases = Array.isArray(cases) ? cases.filter((caseItem) => {
+    // التحقق من أن الحالة تنتمي للمشرف والجامعة الصحيحة
+    const matchesSupervisor = !user?.id || 
+      caseItem.supervisor?.id === user.id || 
+      caseItem.supervisor_id === user.id;
+    
+    const matchesUniversity = !user?.university || 
+      caseItem.university_id === user.university;
+    
+    // إذا لم تطابق الحالة المشرف أو الجامعة، لا نعرضها
+    if (!matchesSupervisor || !matchesUniversity) {
+      return false;
+    }
+
     const matchesSearch =
       caseItem.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       caseItem.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,6 +110,24 @@ export default function CasesPage() {
   const pendingAssignmentsCount = Array.isArray(assignmentRequests) 
     ? assignmentRequests.filter((r) => r.status === 'pending').length 
     : 0;
+
+  // التحقق من وجود بيانات المستخدم
+  if (!user?.id || !user?.university) {
+    return (
+      <div className="space-y-6">
+        <div className="mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
+            إدارة الحالات
+          </h1>
+        </div>
+        <div className="rounded-lg bg-white border border-sky-100 p-12 text-center shadow-sm">
+          <p className="text-base font-semibold text-dark" style={{ fontFamily: 'inherit' }}>
+            جاري تحميل بيانات المستخدم...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

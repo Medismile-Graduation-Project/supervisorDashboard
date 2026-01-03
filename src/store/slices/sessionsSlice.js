@@ -7,7 +7,8 @@ export const fetchSessions = createAsyncThunk(
   async ({ caseId, params = {} }, { rejectWithValue }) => {
     try {
       const response = await api.get(`/cases/${caseId}/sessions/`, { params });
-      return response.data.data;
+      // API يعيد array مباشرة
+      return response.data.data || response.data || [];
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -77,7 +78,8 @@ const sessionsSlice = createSlice({
       })
       .addCase(fetchSessions.fulfilled, (state, action) => {
         state.loading = false;
-        state.sessions = action.payload;
+        // التأكد من أن البيانات هي array
+        state.sessions = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchSessions.rejected, (state, action) => {
         state.loading = false;

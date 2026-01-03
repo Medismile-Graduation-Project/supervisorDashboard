@@ -6,32 +6,77 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
+      // 1. تسجيل الدخول والحصول على Tokens
       const response = await api.post('/accounts/login/supervisor/', { email, password });
       
-      // البنية الفعلية للاستجابة: response.data.tokens و response.data.user
-      const tokens = response.data.tokens || response.data.data?.tokens;
-      const user = response.data.user || response.data.data?.user;
+      // استخراج Tokens من الاستجابة
+      const tokens = response.data.tokens || response.data.data?.tokens || response.data;
       
-      // حفظ Tokens في localStorage
+      // التحقق من وجود Tokens
+      if (!tokens?.access) {
+        return rejectWithValue({
+          message: 'لم يتم استلام Token من الخادم',
+          error: 'Missing access token',
+        });
+      }
+      
+      // حفظ Tokens في localStorage فوراً
       if (typeof window !== 'undefined') {
-        if (tokens?.access) {
-          localStorage.setItem('access_token', tokens.access);
-        }
-        if (tokens?.refresh) {
+        localStorage.setItem('access_token', tokens.access);
+        if (tokens.refresh) {
           localStorage.setItem('refresh_token', tokens.refresh);
-        }
-        if (user) {
-          localStorage.setItem('user', JSON.stringify(user));
         }
       }
       
-      // إرجاع البيانات بالبنية المتوقعة
-      return {
-        tokens: tokens || {},
-        user: user || {},
-      };
+      // 2. جلب بيانات المستخدم الكاملة (بما فيها id و university) من API
+      // التأكد من إضافة Token في الـ header يدوياً للطلب الأول
+      try {
+        const userResponse = await api.get('/accounts/me/supervisor/', {
+          headers: {
+            Authorization: `Bearer ${tokens.access}`,
+          },
+        });
+        const userData = userResponse.data.data || userResponse.data;
+        
+        // التحقق من وجود بيانات المستخدم الأساسية
+        if (!userData?.id || !userData?.university) {
+          console.warn('تحذير: بيانات المستخدم غير مكتملة', userData);
+        }
+        
+        // حفظ بيانات المستخدم الكاملة في localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        // إرجاع البيانات الكاملة من API
+        return {
+          tokens: {
+            access: tokens.access,
+            refresh: tokens.refresh || null,
+          },
+          user: userData,
+        };
+      } catch (userError) {
+        // إذا فشل جلب بيانات المستخدم، نمسح Tokens ونعيد الخطأ
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+        }
+        return rejectWithValue({
+          message: 'فشل جلب بيانات المستخدم',
+          error: userError.response?.data || userError.message,
+        });
+      }
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
+      // معالجة أخطاء تسجيل الدخول
+      const errorMessage = error.response?.data || error.message;
+      return rejectWithValue({
+        message: errorMessage?.detail || 
+                errorMessage?.message || 
+                errorMessage?.error || 
+                'فشل تسجيل الدخول. يرجى التحقق من البيانات',
+        error: errorMessage,
+      });
     }
   }
 );
@@ -44,11 +89,17 @@ export const logout = createAsyncThunk(
         ? localStorage.getItem('refresh_token') 
         : null;
       
+      // محاولة تسجيل الخروج من API (حتى لو فشل، نكمل)
       if (refreshToken) {
-        await api.post('/accounts/logout/supervisor/', { refresh: refreshToken });
+        try {
+          await api.post('/accounts/logout/supervisor/', { refresh: refreshToken });
+        } catch (logoutError) {
+          // تجاهل أخطاء logout (404 أو غيرها) - نكمل بمسح البيانات المحلية
+          console.warn('تحذير: فشل تسجيل الخروج من API', logoutError.response?.status);
+        }
       }
       
-      // حذف Tokens من localStorage
+      // حذف Tokens من localStorage دائماً
       if (typeof window !== 'undefined') {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
@@ -63,7 +114,8 @@ export const logout = createAsyncThunk(
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
       }
-      return rejectWithValue(error.response?.data || error.message);
+      // لا نعيد خطأ - نكمل بمسح البيانات المحلية
+      return null;
     }
   }
 );
