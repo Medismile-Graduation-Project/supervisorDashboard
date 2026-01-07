@@ -14,15 +14,30 @@ export const fetchEvaluations = createAsyncThunk(
   }
 );
 
+export const fetchEvaluationById = createAsyncThunk(
+  'evaluations/fetchEvaluationById',
+  async (evaluationId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/evaluations/${evaluationId}/`);
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 export const createEvaluation = createAsyncThunk(
   'evaluations/createEvaluation',
-  async ({ student_id, target_type, target_id, score, rubric, comment }, { rejectWithValue }) => {
+  async ({ target_type, target_id, score, original_score, rubric, comment }, { rejectWithValue }) => {
     try {
+      const scoreValue = parseFloat(score);
+      const originalScoreValue = original_score !== undefined ? parseFloat(original_score) : scoreValue;
+      
       const payload = {
-        student_id,
-        target_type, // "case" | "session" | "appointment"
+        target_type, // "appointment" | "case" | "student" | "supervisor"
         target_id, // UUID للهدف المختار
-        score: parseFloat(score),
+        original_score: originalScoreValue,
+        score: scoreValue,
       };
       
       // إضافة rubric إذا كان موجوداً
@@ -67,6 +82,27 @@ export const submitEvaluation = createAsyncThunk(
   }
 );
 
+export const adjustEvaluation = createAsyncThunk(
+  'evaluations/adjustEvaluation',
+  async ({ evaluationId, new_score, reason }, { rejectWithValue }) => {
+    try {
+      const payload = {
+        new_score: parseFloat(new_score),
+      };
+      
+      // إضافة reason إذا كان موجوداً
+      if (reason && reason.trim()) {
+        payload.reason = reason.trim();
+      }
+      
+      const response = await api.patch(`/evaluations/${evaluationId}/adjust/`, payload);
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 export const finalizeEvaluation = createAsyncThunk(
   'evaluations/finalizeEvaluation',
   async (evaluationId, { rejectWithValue }) => {
@@ -79,11 +115,11 @@ export const finalizeEvaluation = createAsyncThunk(
   }
 );
 
-export const fetchStudentStatistics = createAsyncThunk(
-  'evaluations/fetchStudentStatistics',
+export const fetchStudentRating = createAsyncThunk(
+  'evaluations/fetchStudentRating',
   async (studentId, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/evaluations/students/${studentId}/statistics/`);
+      const response = await api.get(`/evaluations/students/${studentId}/rating/`);
       return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -94,7 +130,7 @@ export const fetchStudentStatistics = createAsyncThunk(
 const initialState = {
   evaluations: [],
   currentEvaluation: null,
-  studentStatistics: null,
+  studentRating: null,
   loading: false,
   error: null,
 };
@@ -125,6 +161,20 @@ const evaluationsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Fetch Evaluation By ID
+      .addCase(fetchEvaluationById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchEvaluationById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentEvaluation = action.payload;
+      })
+      .addCase(fetchEvaluationById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.currentEvaluation = null;
+      })
       // Create Evaluation
       .addCase(createEvaluation.fulfilled, (state, action) => {
         state.evaluations.unshift(action.payload);
@@ -143,6 +193,13 @@ const evaluationsSlice = createSlice({
           state.evaluations[index] = action.payload;
         }
       })
+      // Adjust Evaluation
+      .addCase(adjustEvaluation.fulfilled, (state, action) => {
+        const index = state.evaluations.findIndex((e) => e.id === action.payload.id);
+        if (index !== -1) {
+          state.evaluations[index] = action.payload;
+        }
+      })
       // Finalize Evaluation
       .addCase(finalizeEvaluation.fulfilled, (state, action) => {
         const index = state.evaluations.findIndex((e) => e.id === action.payload.id);
@@ -150,16 +207,16 @@ const evaluationsSlice = createSlice({
           state.evaluations[index] = action.payload;
         }
       })
-      // Fetch Student Statistics
-      .addCase(fetchStudentStatistics.pending, (state) => {
+      // Fetch Student Rating
+      .addCase(fetchStudentRating.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchStudentStatistics.fulfilled, (state, action) => {
+      .addCase(fetchStudentRating.fulfilled, (state, action) => {
         state.loading = false;
-        state.studentStatistics = action.payload;
+        state.studentRating = action.payload;
       })
-      .addCase(fetchStudentStatistics.rejected, (state, action) => {
+      .addCase(fetchStudentRating.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
