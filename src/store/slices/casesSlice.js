@@ -139,13 +139,15 @@ export const fetchAssignmentRequests = createAsyncThunk(
 
 export const respondToAssignmentRequest = createAsyncThunk(
   'cases/respondToAssignmentRequest',
-  async ({ requestId, status, supervisor_response }, { rejectWithValue }) => {
+  async ({ requestId, decision, supervisor_response }, { rejectWithValue }) => {
     try {
-      const response = await api.patch(`/cases/assignment-requests/${requestId}/`, {
-        status,
-        supervisor_response,
+      // decision يجب أن يكون "accept" أو "reject"
+      const response = await api.patch(`/cases/assignment-requests/${requestId}/decision/`, {
+        decision, // "accept" أو "reject"
+        supervisor_response, // optional
       });
-      return response.data.data;
+      // API يعيد البيانات مباشرة أو في data property
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }

@@ -39,12 +39,12 @@ npm start
 
 ## متغيرات البيئة
 
-### للإنتاج (Render)
+### للإنتاج (Railway / Render)
 
-قم بتعيين متغير البيئة في Render:
+قم بتعيين متغير البيئة في منصة الاستضافة (Railway أو Render):
 
 ```
-NEXT_PUBLIC_API_URL=https://medi-smile1.onrender.com/api
+NEXT_PUBLIC_API_URL=https://medismile1-production.up.railway.app/api
 ```
 
 ### للتطوير المحلي (اختياري)
@@ -52,7 +52,7 @@ NEXT_PUBLIC_API_URL=https://medi-smile1.onrender.com/api
 إذا كنت تريد تشغيل المشروع محلياً، أنشئ ملف `.env.local`:
 
 ```
-NEXT_PUBLIC_API_URL=https://medi-smile1.onrender.com/api
+NEXT_PUBLIC_API_URL=https://medismile1-production.up.railway.app/api
 ```
 
 ## البنية

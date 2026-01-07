@@ -11,7 +11,8 @@ function AuthInitializer({ children }) {
   useEffect(() => {
     // تهيئة بيانات المصادقة من localStorage بعد تحميل الصفحة
     dispatch(initializeAuth());
-  }, [dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return <>{children}</>;
 }

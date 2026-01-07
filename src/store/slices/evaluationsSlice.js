@@ -16,13 +16,26 @@ export const fetchEvaluations = createAsyncThunk(
 
 export const createEvaluation = createAsyncThunk(
   'evaluations/createEvaluation',
-  async ({ score, target_type, student_id }, { rejectWithValue }) => {
+  async ({ student_id, target_type, target_id, score, rubric, comment }, { rejectWithValue }) => {
     try {
-      const response = await api.post('/evaluations/', {
-        score,
-        target_type,
+      const payload = {
         student_id,
-      });
+        target_type, // "case" | "session" | "appointment"
+        target_id, // UUID للهدف المختار
+        score: parseFloat(score),
+      };
+      
+      // إضافة rubric إذا كان موجوداً
+      if (rubric && Object.keys(rubric).length > 0) {
+        payload.rubric = rubric;
+      }
+      
+      // إضافة comment إذا كان موجوداً
+      if (comment && comment.trim()) {
+        payload.comment = comment.trim();
+      }
+      
+      const response = await api.post('/evaluations/', payload);
       return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -47,7 +60,7 @@ export const submitEvaluation = createAsyncThunk(
   async (evaluationId, { rejectWithValue }) => {
     try {
       const response = await api.post(`/evaluations/${evaluationId}/submit/`);
-      return response.data.data;
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }

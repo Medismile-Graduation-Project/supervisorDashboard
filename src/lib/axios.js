@@ -2,7 +2,10 @@ import axios from 'axios';
 
 // إنشاء instance من axios مع الإعدادات الأساسية
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://medi-smile1.onrender.com/api',
+  // استخدم متغير البيئة أولاً، وإذا لم يكن موجوداً استخدم الـ base URL الجديد على Railway
+  baseURL:
+    process.env.NEXT_PUBLIC_API_URL ||
+    'https://medismile1-production.up.railway.app/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -49,7 +52,10 @@ api.interceptors.response.use(
 
         if (refreshToken) {
           const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL || 'https://medi-smile1.onrender.com/api'}/accounts/auth/token/refresh/`,
+            `${
+              process.env.NEXT_PUBLIC_API_URL ||
+              'https://medismile1-production.up.railway.app/api'
+            }/accounts/auth/token/refresh/`,
             { refresh: refreshToken }
           );
 

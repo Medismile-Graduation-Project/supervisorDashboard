@@ -3,6 +3,21 @@ const nextConfig = {
   /* config options here */
   // إعدادات إضافية
   reactStrictMode: true,
+  
+  // إصلاح مشاكل تحميل الـ chunks
+  webpack: (config, { isServer }) => {
+    // إصلاح مشاكل تحميل الـ chunks
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
+  },
+  
   // إصلاح مشكلة favicon
   async headers() {
     return [

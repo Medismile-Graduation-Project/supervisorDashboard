@@ -5,8 +5,12 @@ import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import {
   fetchPendingContent,
+  fetchApprovedContent,
   approveContent,
   rejectContent,
+  reactToPost,
+  fetchPostComments,
+  addComment,
 } from '@/store/slices/contentSlice';
 import {
   MagnifyingGlassIcon,
@@ -19,7 +23,9 @@ import {
   DocumentTextIcon,
   PhotoIcon,
   VideoCameraIcon,
+  HeartIcon,
 } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import toast from 'react-hot-toast';
 
 const contentTypeLabels = {
@@ -52,33 +58,54 @@ const statusColors = {
 
 export default function ContentPage() {
   const dispatch = useAppDispatch();
-  const { pendingContent = [], loading } = useAppSelector((state) => state.content);
+  const { pendingContent = [], approvedContent = [], loading } = useAppSelector((state) => state.content);
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending' أو 'approved'
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedContent, setSelectedContent] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [commentText, setCommentText] = useState('');
+  const [selectedPostForComment, setSelectedPostForComment] = useState(null);
   const [localFilters, setLocalFilters] = useState({
     content_type: '',
-    status: 'pending',
+    status: '', // إزالة القيمة الافتراضية للسماح بعرض جميع الحالات
   });
 
   useEffect(() => {
     dispatch(fetchPendingContent());
+    dispatch(fetchApprovedContent());
   }, [dispatch]);
 
-  const filteredContent = Array.isArray(pendingContent) ? pendingContent.filter((content) => {
+  // إعادة جلب البيانات عند تغيير التاب
+  useEffect(() => {
+    if (activeTab === 'approved') {
+      dispatch(fetchApprovedContent());
+    }
+  }, [activeTab, dispatch]);
+
+  // تحديد المحتوى المعروض حسب التاب النشط
+  const displayedContent = activeTab === 'pending' ? pendingContent : approvedContent;
+
+  const filteredContent = Array.isArray(displayedContent) ? displayedContent.filter((content) => {
     const matchesSearch =
       content.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      content.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       content.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      content.author?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      content.author?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      content.author?.username?.toLowerCase().includes(searchTerm.toLowerCase());
+      content.author_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      content.university_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (content.author?.first_name && content.author.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (content.author?.last_name && content.author.last_name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesType =
       !localFilters.content_type || content.content_type === localFilters.content_type;
-    const matchesStatus =
-      !localFilters.status || content.status === localFilters.status;
+    // فلترة الحالة - إذا كان التاب "موافق عليه"، نعرض فقط الموافق عليها
+    // وإذا كان التاب "معلق"، نعرض فقط المعلق
+    const matchesStatus = activeTab === 'approved' 
+      ? content.status === 'approved'
+      : activeTab === 'pending'
+        ? content.status === 'pending'
+        : (!localFilters.status || content.status === localFilters.status);
 
     return matchesSearch && matchesType && matchesStatus;
   }) : [];
@@ -89,11 +116,37 @@ export default function ContentPage() {
       if (approveContent.fulfilled.match(result)) {
         toast.success('تم اعتماد المحتوى بنجاح');
         dispatch(fetchPendingContent());
+        dispatch(fetchApprovedContent()); // إعادة جلب المنشورات الموافق عليها
       } else {
-        const errorMessage = result.payload?.message || 
-                           result.payload?.error || 
-                           'فشل اعتماد المحتوى';
-        toast.error(errorMessage);
+        // تحسين عرض رسائل الخطأ
+        const errorPayload = result.payload || {};
+        let errorMessage = errorPayload.message || errorPayload.error || 'فشل اعتماد المحتوى';
+        
+        // معالجة errors إذا كانت موجودة
+        if (errorPayload.errors) {
+          if (typeof errorPayload.errors === 'string') {
+            // إذا كانت errors نصية (مثل: "['Student content must be approved by a supervisor.']")
+            try {
+              // محاولة استخراج الرسالة من النص
+              const errorsMatch = errorPayload.errors.match(/\[(.*?)\]/);
+              if (errorsMatch && errorsMatch[1]) {
+                errorMessage = errorsMatch[1].replace(/'/g, '').trim();
+              } else {
+                errorMessage = errorPayload.errors;
+              }
+            } catch (e) {
+              errorMessage = errorPayload.errors;
+            }
+          } else if (Array.isArray(errorPayload.errors)) {
+            // إذا كانت errors مصفوفة
+            errorMessage = errorPayload.errors.join(', ');
+          } else if (typeof errorPayload.errors === 'object') {
+            // إذا كانت errors كائن
+            errorMessage = Object.values(errorPayload.errors).flat().join(', ');
+          }
+        }
+        
+        toast.error(errorMessage, { duration: 5000 });
       }
     } catch (error) {
       toast.error('حدث خطأ أثناء اعتماد المحتوى');
@@ -110,7 +163,7 @@ export default function ContentPage() {
       const result = await dispatch(
         rejectContent({
           contentId: selectedContent.id,
-          rejection_reason: rejectionReason || '',
+          reason: rejectionReason || '',
         })
       );
       if (rejectContent.fulfilled.match(result)) {
@@ -127,6 +180,71 @@ export default function ContentPage() {
       }
     } catch (error) {
       toast.error('حدث خطأ أثناء رفض المحتوى');
+    }
+  };
+
+  const handleReactToPost = async (postId) => {
+    try {
+      const result = await dispatch(reactToPost(postId));
+      if (reactToPost.fulfilled.match(result)) {
+        // تحديث المحتوى المحلي
+        if (activeTab === 'pending') {
+          dispatch(fetchPendingContent());
+        } else {
+          dispatch(fetchApprovedContent());
+        }
+      } else {
+        const errorMessage = result.payload?.message || 
+                           result.payload?.error || 
+                           'فشل الإعجاب بالمنشور';
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      toast.error('حدث خطأ أثناء الإعجاب بالمنشور');
+    }
+  };
+
+  const handleAddComment = async (postId) => {
+    if (!commentText.trim()) {
+      toast.error('يرجى إدخال نص التعليق');
+      return;
+    }
+
+    try {
+      const result = await dispatch(addComment({
+        postId,
+        text: commentText.trim(),
+      }));
+      if (addComment.fulfilled.match(result)) {
+        toast.success('تم إضافة التعليق بنجاح');
+        setCommentText('');
+        // إعادة جلب التعليقات للمنشور بعد إضافة تعليق جديد
+        await dispatch(fetchPostComments(postId));
+        // تحديث المحتوى حسب التاب النشط
+        if (activeTab === 'pending') {
+          dispatch(fetchPendingContent());
+        } else {
+          dispatch(fetchApprovedContent());
+        }
+      } else {
+        const errorPayload = result.payload || {};
+        let errorMessage = errorPayload.message || errorPayload.error || 'فشل إضافة التعليق';
+        
+        // معالجة errors
+        if (errorPayload.errors) {
+          if (typeof errorPayload.errors === 'string') {
+            errorMessage = errorPayload.errors;
+          } else if (Array.isArray(errorPayload.errors)) {
+            errorMessage = errorPayload.errors.join(', ');
+          } else if (typeof errorPayload.errors === 'object') {
+            errorMessage = Object.values(errorPayload.errors).flat().join(', ');
+          }
+        }
+        
+        toast.error(errorMessage, { duration: 5000 });
+      }
+    } catch (error) {
+      toast.error('حدث خطأ أثناء إضافة التعليق');
     }
   };
 
@@ -219,6 +337,32 @@ export default function ContentPage() {
         </div>
       </div>
 
+      {/* Tabs للتبديل بين المعلق والموافق عليه */}
+      <div className="rounded-lg bg-white border border-sky-100 p-1 shadow-sm">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20 ${
+              activeTab === 'pending'
+                ? 'bg-sky-500 text-white'
+                : 'bg-transparent text-dark hover:bg-sky-50'
+            }`}
+          >
+            معلق ({stats.total})
+          </button>
+          <button
+            onClick={() => setActiveTab('approved')}
+            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20 ${
+              activeTab === 'approved'
+                ? 'bg-sky-500 text-white'
+                : 'bg-transparent text-dark hover:bg-sky-50'
+            }`}
+          >
+            موافق عليه ({stats.approved})
+          </button>
+        </div>
+      </div>
+
       {/* Search and Filters */}
       <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -266,22 +410,25 @@ export default function ContentPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-dark mb-2.5">الحالة</label>
-              <select
-                value={localFilters.status}
-                onChange={(e) =>
-                  setLocalFilters({ ...localFilters, status: e.target.value })
-                }
-                className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
-              >
-                {Object.entries(statusLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {activeTab === 'pending' && (
+              <div>
+                <label className="block text-sm font-semibold text-dark mb-2.5">الحالة</label>
+                <select
+                  value={localFilters.status}
+                  onChange={(e) =>
+                    setLocalFilters({ ...localFilters, status: e.target.value })
+                  }
+                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+                >
+                  <option value="">جميع الحالات</option>
+                  {Object.entries(statusLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -296,11 +443,15 @@ export default function ContentPage() {
         ) : filteredContent.length === 0 ? (
           <div className="p-12 text-center">
             <ChatBubbleLeftRightIcon className="mx-auto h-12 w-12 text-dark-lighter" />
-            <p className="mt-4 text-base font-semibold text-dark leading-relaxed">لا يوجد محتوى معلق</p>
+            <p className="mt-4 text-base font-semibold text-dark leading-relaxed">
+              {activeTab === 'pending' ? 'لا يوجد محتوى معلق' : 'لا يوجد محتوى موافق عليه'}
+            </p>
             <p className="mt-2 text-sm text-dark-lighter leading-relaxed">
               {searchTerm || localFilters.content_type || localFilters.status !== 'pending'
                 ? 'لا يوجد محتوى يطابق معايير البحث'
-                : 'جميع المحتوى تمت مراجعته'}
+                : activeTab === 'pending' 
+                  ? 'جميع المحتوى تمت مراجعته'
+                  : 'لا توجد منشورات موافق عليها بعد'}
             </p>
           </div>
         ) : (
@@ -331,10 +482,57 @@ export default function ContentPage() {
 
                       <div className="mb-4">
                         <p className="text-sm text-dark whitespace-pre-wrap line-clamp-4 leading-relaxed">
-                          {content.content || content.body || 'لا يوجد محتوى'}
+                          {content.content || content.description || content.body || 'لا يوجد محتوى'}
                         </p>
                       </div>
 
+                      {content.file && (
+                        <div className="mb-4">
+                          {(() => {
+                            const baseUrl = process.env.NEXT_PUBLIC_API_URL 
+                              ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
+                              : 'https://medismile1-production.up.railway.app';
+                            const fileUrl = content.file.startsWith('http') 
+                              ? content.file 
+                              : `${baseUrl}${content.file}`;
+                            
+                            if (content.file.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                              return (
+                                <img
+                                  src={fileUrl}
+                                  alt="محتوى وسائط"
+                                  className="max-w-md rounded-lg border-2 border-sky-200"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              );
+                            } else if (content.file.match(/\.(mp4|webm|ogg)$/i)) {
+                              return (
+                                <video
+                                  src={fileUrl}
+                                  controls
+                                  className="max-w-md rounded-lg border-2 border-sky-200"
+                                >
+                                  متصفحك لا يدعم تشغيل الفيديو
+                                </video>
+                              );
+                            } else {
+                              return (
+                                <a
+                                  href={fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sky-600 hover:text-sky-700 text-sm font-semibold transition-colors"
+                                >
+                                  عرض الملف المرفق
+                                </a>
+                              );
+                            }
+                          })()}
+                        </div>
+                      )}
+                      
                       {content.media_url && (
                         <div className="mb-4">
                           {content.content_type === 'media' && content.media_type?.startsWith('image') ? (
@@ -365,13 +563,25 @@ export default function ContentPage() {
                       )}
 
                       <div className="flex items-center gap-4 text-xs text-dark-lighter mt-4 flex-wrap">
-                        {content.author && (
+                        {content.author_name && (
+                          <div className="flex items-center gap-2">
+                            <UserIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                            <span>{content.author_name}</span>
+                          </div>
+                        )}
+                        {!content.author_name && content.author && (
                           <div className="flex items-center gap-2">
                             <UserIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
                             <span>
-                              {content.author?.first_name} {content.author?.last_name} (
-                              {content.author?.username})
+                              {content.author?.first_name} {content.author?.last_name}
+                              {content.author?.username && ` (${content.author.username})`}
                             </span>
+                          </div>
+                        )}
+                        {content.university_name && (
+                          <div className="flex items-center gap-2">
+                            <DocumentTextIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                            <span>{content.university_name}</span>
                           </div>
                         )}
                         {content.created_at && (
@@ -388,6 +598,12 @@ export default function ContentPage() {
                             </span>
                           </div>
                         )}
+                        {content.approved_by_name && (
+                          <div className="flex items-center gap-2">
+                            <CheckCircleIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                            <span>موافق عليه من: {content.approved_by_name}</span>
+                          </div>
+                        )}
                       </div>
 
                       {content.rejection_reason && (
@@ -396,9 +612,120 @@ export default function ContentPage() {
                           <p className="text-sm text-sky-900 leading-relaxed">{content.rejection_reason}</p>
                         </div>
                       )}
+
+                      {/* قسم الإعجابات والتعليقات - فقط للمنشورات الموافق عليها */}
+                      {content.status === 'approved' && (
+                        <div className="mt-4 pt-4 border-t border-sky-100">
+                          <div className="flex items-center gap-4 mb-3">
+                            <button
+                              onClick={() => handleReactToPost(content.id)}
+                              className="flex items-center gap-2 rounded-lg border-2 border-sky-200 bg-white px-3 py-1.5 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                            >
+                              {content.liked ? (
+                                <HeartIconSolid className="h-5 w-5 text-red-500" />
+                              ) : (
+                                <HeartIcon className="h-5 w-5 text-dark-lighter" />
+                              )}
+                              <span>{content.likes_count || 0}</span>
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const newSelectedPost = selectedPostForComment === content.id ? null : content.id;
+                                setSelectedPostForComment(newSelectedPost);
+                                
+                                // جلب التعليقات عند فتح قسم التعليقات
+                                if (newSelectedPost && (!content.comments || content.comments.length === 0)) {
+                                  try {
+                                    await dispatch(fetchPostComments(content.id));
+                                  } catch (error) {
+                                    console.error('Failed to fetch comments:', error);
+                                  }
+                                }
+                              }}
+                              className="flex items-center gap-2 rounded-lg border-2 border-sky-200 bg-white px-3 py-1.5 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                            >
+                              <ChatBubbleLeftRightIcon className="h-5 w-5 text-dark-lighter" />
+                              <span>{content.comments_count || content.comments?.length || 0}</span>
+                            </button>
+                          </div>
+
+                          {/* نموذج إضافة تعليق */}
+                          {selectedPostForComment === content.id && (
+                            <div className="mb-3 p-3 rounded-lg bg-sky-50 border-2 border-sky-200">
+                              <textarea
+                                value={commentText}
+                                onChange={(e) => setCommentText(e.target.value)}
+                                rows={3}
+                                placeholder="أضف تعليقاً..."
+                                className="w-full rounded-lg border-2 border-sky-200 bg-white px-3 py-2 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200 resize-none mb-2"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleAddComment(content.id)}
+                                  className="flex-1 rounded-lg bg-sky-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                                >
+                                  إرسال
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedPostForComment(null);
+                                    setCommentText('');
+                                  }}
+                                  className="rounded-lg border-2 border-sky-200 bg-white px-3 py-1.5 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                                >
+                                  إلغاء
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* عرض التعليقات */}
+                          {selectedPostForComment === content.id && (
+                            <>
+                              {content.comments && content.comments.length > 0 ? (
+                                <div className="space-y-2 mt-3">
+                                  <p className="text-sm font-semibold text-dark mb-2">التعليقات ({content.comments.length})</p>
+                                  {content.comments.map((comment) => (
+                                    <div key={comment.id} className="p-3 rounded-lg bg-white border-2 border-sky-100">
+                                      <div className="flex items-start gap-2">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm font-semibold text-dark">
+                                              {comment.author_name || comment.author?.first_name || comment.author?.username || 'مستخدم'}
+                                            </p>
+                                            {comment.created_at && (
+                                              <p className="text-xs text-dark-lighter">
+                                                {new Date(comment.created_at).toLocaleDateString('ar-SA', {
+                                                  year: 'numeric',
+                                                  month: 'short',
+                                                  day: 'numeric',
+                                                  hour: '2-digit',
+                                                  minute: '2-digit',
+                                                })}
+                                              </p>
+                                            )}
+                                          </div>
+                                          <p className="text-sm text-dark-lighter leading-relaxed whitespace-pre-wrap">
+                                            {comment.text || comment.content || 'لا يوجد نص'}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="mt-3 p-4 rounded-lg bg-sky-50 border-2 border-sky-200 text-center">
+                                  <p className="text-sm text-dark-lighter">لا توجد تعليقات بعد</p>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {content.status === 'pending' && (
+                    {/* أزرار الموافقة/الرفض - فقط للمحتوى المعلق */}
+                    {content.status === 'pending' && activeTab === 'pending' && (
                       <div className="flex flex-col gap-2 flex-shrink-0">
                         <button
                           onClick={() => handleApproveContent(content.id)}
@@ -438,7 +765,7 @@ export default function ContentPage() {
             <div className="mb-5 p-4 rounded-lg bg-sky-50 border-2 border-sky-200">
               <p className="text-sm font-semibold text-dark mb-2">المحتوى:</p>
               <p className="text-sm text-dark whitespace-pre-wrap line-clamp-5 leading-relaxed">
-                {selectedContent.content || selectedContent.body || 'لا يوجد محتوى'}
+                {selectedContent.description || selectedContent.content || selectedContent.body || 'لا يوجد محتوى'}
               </p>
             </div>
 

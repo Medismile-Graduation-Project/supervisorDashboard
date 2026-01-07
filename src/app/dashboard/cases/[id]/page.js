@@ -119,16 +119,21 @@ export default function CaseDetailsPage() {
 
   const handleRespondToAssignment = async (requestId, status) => {
     try {
+      // تحويل status إلى decision format المطلوب من API
+      // status يمكن أن يكون "accepted" أو "rejected"
+      // decision يجب أن يكون "accept" أو "reject"
+      const decision = status === 'accepted' ? 'accept' : 'reject';
+      
       const result = await dispatch(
         respondToAssignmentRequest({
           requestId,
-          status,
-          supervisor_response: assignmentResponse,
+          decision, // "accept" أو "reject"
+          supervisor_response: assignmentResponse || undefined, // optional
         })
       );
       if (respondToAssignmentRequest.fulfilled.match(result)) {
         toast.success(
-          status === 'accepted' ? 'تم قبول طلب الإسناد' : 'تم رفض طلب الإسناد'
+          decision === 'accept' ? 'تم قبول طلب الإسناد' : 'تم رفض طلب الإسناد'
         );
         setShowAssignmentModal(false);
         setSelectedRequest(null);
@@ -136,7 +141,11 @@ export default function CaseDetailsPage() {
         dispatch(fetchCaseById(params.id));
         dispatch(fetchAssignmentRequests({ case: params.id }));
       } else {
-        toast.error(result.payload?.message || 'فشل معالجة الطلب');
+        const errorMessage = result.payload?.detail || 
+                           result.payload?.message || 
+                           result.payload?.error ||
+                           'فشل معالجة الطلب';
+        toast.error(errorMessage);
       }
     } catch (error) {
       toast.error('حدث خطأ أثناء معالجة الطلب');
