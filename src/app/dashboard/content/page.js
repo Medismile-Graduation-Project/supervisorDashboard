@@ -58,7 +58,7 @@ const statusColors = {
 
 export default function ContentPage() {
   const dispatch = useAppDispatch();
-  const { pendingContent = [], approvedContent = [], loading } = useAppSelector((state) => state.content);
+  const { pendingContent = [], approvedContent = [], loading, creating } = useAppSelector((state) => state.content);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' أو 'approved'
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -67,6 +67,16 @@ export default function ContentPage() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [commentText, setCommentText] = useState('');
   const [selectedPostForComment, setSelectedPostForComment] = useState(null);
+  const [newPost, setNewPost] = useState({
+    title: '',
+    content: '',
+    description: '',
+    category: 'general',
+    tags: '',
+    content_type: 'text',
+    is_public: true,
+    is_featured: false,
+  });
   const [localFilters, setLocalFilters] = useState({
     content_type: '',
     status: '', // إزالة القيمة الافتراضية للسماح بعرض جميع الحالات
@@ -334,6 +344,166 @@ export default function ContentPage() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Create New Post (Supervisor) */}
+      <div className="rounded-lg bg-white border border-sky-100 p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-dark mb-3" style={{ fontFamily: 'inherit' }}>
+          إنشاء منشور مجتمعي جديد
+        </h2>
+        <p className="text-sm text-dark-lighter mb-4">
+          يمكنك نشر محتوى تعليمي أو نقاشات حالات لطلابك. سيظهر المحتوى في المجتمع بعد الموافقة عليه إذا كانت هناك صلاحيات مراجعة إضافية.
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-semibold text-dark mb-2.5">
+              عنوان المنشور
+            </label>
+            <input
+              type="text"
+              value={newPost.title}
+              onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+              placeholder="مثال: مناقشة حالة تسوس عميق"
+              className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-semibold text-dark mb-2.5">
+              الوصف (مطلوب) <span className="text-sky-600">*</span>
+            </label>
+            <textarea
+              rows={3}
+              value={newPost.description}
+              onChange={(e) => setNewPost({ ...newPost, description: e.target.value })}
+              placeholder="اكتب وصفاً مختصراً للمنشور..."
+              required
+              className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200 resize-none"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-semibold text-dark mb-2.5">
+              محتوى المنشور
+            </label>
+            <textarea
+              rows={4}
+              value={newPost.content}
+              onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+              placeholder="اكتب ملخصاً تعليمياً أو وصفاً للحالة..."
+              className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200 resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-dark mb-2.5">
+              التصنيف
+            </label>
+            <select
+              value={newPost.category}
+              onChange={(e) => setNewPost({ ...newPost, category: e.target.value })}
+              className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+            >
+              <option value="general">عام</option>
+              <option value="educational">تعليمي</option>
+              <option value="case_discussion">مناقشة حالة</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-dark mb-2.5">
+              الوسوم (Tags)
+            </label>
+            <input
+              type="text"
+              value={newPost.tags}
+              onChange={(e) => setNewPost({ ...newPost, tags: e.target.value })}
+              placeholder="مثال: endodontics, caries"
+              className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
+            />
+          </div>
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-4">
+            <label className="inline-flex items-center gap-2 text-sm text-dark">
+              <input
+                type="checkbox"
+                checked={newPost.is_public}
+                onChange={(e) =>
+                  setNewPost({ ...newPost, is_public: e.target.checked })
+                }
+                className="h-4 w-4 rounded border-sky-300 text-sky-500 focus:ring-sky-400"
+              />
+              <span>عرضه بشكل عام ضمن المجتمع</span>
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-dark">
+              <input
+                type="checkbox"
+                checked={newPost.is_featured}
+                onChange={(e) =>
+                  setNewPost({ ...newPost, is_featured: e.target.checked })
+                }
+                className="h-4 w-4 rounded border-sky-300 text-sky-500 focus:ring-sky-400"
+              />
+              <span>تمييزه كمحتوى مميز</span>
+            </label>
+          </div>
+          <button
+            type="button"
+            disabled={creating || !newPost.title.trim() || !newPost.description.trim()}
+            onClick={async () => {
+              try {
+                const payload = {
+                  title: newPost.title.trim(),
+                  content: newPost.content.trim() || newPost.description.trim(),
+                  description: newPost.description.trim(),
+                  content_type: newPost.content_type,
+                  category: newPost.category,
+                  file: null,
+                  url: null,
+                  tags: newPost.tags || null,
+                  is_public: newPost.is_public,
+                  is_featured: newPost.is_featured,
+                };
+                const { createPost } = await import('@/store/slices/contentSlice');
+                const resultAction = await dispatch(createPost(payload));
+                if (createPost.fulfilled.match(resultAction)) {
+                  toast.success('تم إنشاء المنشور وإرساله للمراجعة');
+                  setNewPost({
+                    title: '',
+                    content: '',
+                    description: '',
+                    category: 'general',
+                    tags: '',
+                    content_type: 'text',
+                    is_public: true,
+                    is_featured: false,
+                  });
+                  dispatch(fetchPendingContent());
+                } else {
+                  const errorPayload = resultAction.payload || {};
+                  let errorMessage =
+                    errorPayload.message ||
+                    errorPayload.error ||
+                    'فشل إنشاء المنشور';
+                  if (errorPayload.errors) {
+                    if (typeof errorPayload.errors === 'string') {
+                      errorMessage = errorPayload.errors;
+                    } else if (Array.isArray(errorPayload.errors)) {
+                      errorMessage = errorPayload.errors.join(', ');
+                    } else if (typeof errorPayload.errors === 'object') {
+                      errorMessage = Object.values(errorPayload.errors)
+                        .flat()
+                        .join(', ');
+                    }
+                  }
+                  toast.error(errorMessage, { duration: 5000 });
+                }
+              } catch (error) {
+                toast.error('حدث خطأ أثناء إنشاء المنشور');
+              }
+            }}
+            className="inline-flex items-center justify-center rounded-lg bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+          >
+            {creating ? 'جاري الإرسال...' : 'نشر المنشور'}
+          </button>
         </div>
       </div>
 
@@ -740,7 +910,7 @@ export default function ContentPage() {
                             setRejectionReason('');
                             setShowRejectModal(true);
                           }}
-                          className="flex items-center gap-2 rounded-lg bg-dark-lighter px-4 py-2 text-sm font-semibold text-white hover:bg-dark transition-colors focus:outline-none focus:ring-2 focus:ring-dark-lighter/30"
+                          className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/30"
                         >
                           <XCircleIcon className="h-5 w-5" />
                           رفض
@@ -789,7 +959,7 @@ export default function ContentPage() {
               <button
                 onClick={handleRejectContent}
                 disabled={!rejectionReason.trim()}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-dark-lighter px-4 py-2.5 text-sm font-semibold text-white hover:bg-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-dark-lighter/30"
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500/30"
               >
                 <XCircleIcon className="h-5 w-5" />
                 رفض

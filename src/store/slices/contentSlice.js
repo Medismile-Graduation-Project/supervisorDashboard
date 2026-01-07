@@ -14,6 +14,29 @@ export const fetchPendingContent = createAsyncThunk(
   }
 );
 
+// إنشاء منشور جديد (يستخدمه الطالب أو المشرف)
+export const createPost = createAsyncThunk(
+  'content/createPost',
+  async (postData, { rejectWithValue }) => {
+    try {
+      // نتبع الـ spec الجديد: POST /api/community/posts/
+      const response = await api.post('/community/posts/', postData);
+      return response.data.data || response.data;
+    } catch (error) {
+      const errorData = error.response?.data || {};
+      return rejectWithValue({
+        message: errorData.message || error.message,
+        error: errorData.error || error.message,
+        errors:
+          typeof errorData.errors === 'string'
+            ? errorData.errors
+            : errorData.errors || null,
+        ...errorData,
+      });
+    }
+  }
+);
+
 export const fetchApprovedContent = createAsyncThunk(
   'content/fetchApprovedContent',
   async (params = {}, { rejectWithValue, getState }) => {
@@ -131,6 +154,8 @@ const initialState = {
   approvedContent: [], // المنشورات الموافق عليها
   loading: false,
   error: null,
+  creating: false,
+  createError: null,
   likedPosts: {}, // لتتبع المنشورات المعجبة { postId: true/false }
 };
 
@@ -156,6 +181,23 @@ const contentSlice = createSlice({
       .addCase(fetchPendingContent.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Create Post
+      .addCase(createPost.pending, (state) => {
+        state.creating = true;
+        state.createError = null;
+      })
+      .addCase(createPost.fulfilled, (state, action) => {
+        state.creating = false;
+        const created = action.payload;
+        // إذا كان المنشور بحالة pending نضيفه مباشرة إلى قائمة المعلق
+        if (created && created.status === 'pending') {
+          state.pendingContent.unshift(created);
+        }
+      })
+      .addCase(createPost.rejected, (state, action) => {
+        state.creating = false;
+        state.createError = action.payload;
       })
       // Fetch Approved Content
       .addCase(fetchApprovedContent.pending, (state) => {
