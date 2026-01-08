@@ -26,11 +26,96 @@ export const fetchReportById = createAsyncThunk(
   }
 );
 
+export const createReport = createAsyncThunk(
+  'reports/createReport',
+  async ({ report_type, target_type, target_id, title, description, content, attachments }, { rejectWithValue }) => {
+    try {
+      const payload = {
+        report_type,
+        target_type,
+        target_id,
+        title,
+        description: description || '',
+        content: content || {},
+      };
+      
+      // إضافة attachments إذا كان موجوداً
+      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        payload.attachments = attachments;
+      }
+      
+      const response = await api.post('/reports/', payload);
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const updateReport = createAsyncThunk(
+  'reports/updateReport',
+  async ({ reportId, title, description, content }, { rejectWithValue }) => {
+    try {
+      const payload = {};
+      
+      if (title !== undefined) {
+        payload.title = title;
+      }
+      
+      if (description !== undefined) {
+        payload.description = description;
+      }
+      
+      if (content !== undefined) {
+        // تحويل content من string إلى object إذا كان string
+        if (typeof content === 'string') {
+          try {
+            payload.content = JSON.parse(content);
+          } catch (e) {
+            payload.content = { summary: content };
+          }
+        } else {
+          payload.content = content;
+        }
+      }
+      
+      const response = await api.patch(`/reports/${reportId}/`, payload);
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 export const approveReport = createAsyncThunk(
   'reports/approveReport',
+  async ({ reportId, review_notes, score }, { rejectWithValue }) => {
+    try {
+      const payload = {};
+      
+      // إضافة review_notes إذا كان موجوداً
+      if (review_notes && review_notes.trim()) {
+        payload.review_notes = review_notes.trim();
+      }
+      
+      // إضافة score إذا كان موجوداً
+      if (score !== undefined && score !== null) {
+        payload.score = parseFloat(score);
+      }
+      
+      const response = await api.post(`/reports/${reportId}/approve/`, payload);
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const submitReport = createAsyncThunk(
+  'reports/submitReport',
   async (reportId, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/reports/${reportId}/approve/`);
+      const response = await api.post(`/reports/${reportId}/submit/`);
       return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -40,9 +125,16 @@ export const approveReport = createAsyncThunk(
 
 export const rejectReport = createAsyncThunk(
   'reports/rejectReport',
-  async (reportId, { rejectWithValue }) => {
+  async ({ reportId, review_notes }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/reports/${reportId}/reject/`);
+      const payload = {};
+      
+      // review_notes مطلوب لرفض التقرير
+      if (review_notes && review_notes.trim()) {
+        payload.review_notes = review_notes.trim();
+      }
+      
+      const response = await api.post(`/reports/${reportId}/reject/`, payload);
       return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -96,6 +188,22 @@ const reportsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Create Report
+      .addCase(createReport.fulfilled, (state, action) => {
+        state.reports.unshift(action.payload);
+      })
+      // Update Report
+      .addCase(updateReport.fulfilled, (state, action) => {
+        // تحديث التقرير في القائمة
+        const index = state.reports.findIndex((r) => r.id === action.payload.id);
+        if (index !== -1) {
+          state.reports[index] = action.payload;
+        }
+        // تحديث currentReport إذا كان هو نفسه
+        if (state.currentReport?.id === action.payload.id) {
+          state.currentReport = action.payload;
+        }
+      })
       // Approve Report
       .addCase(approveReport.pending, (state) => {
         state.loading = true;
@@ -135,6 +243,27 @@ const reportsSlice = createSlice({
         }
       })
       .addCase(rejectReport.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Submit Report
+      .addCase(submitReport.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(submitReport.fulfilled, (state, action) => {
+        state.loading = false;
+        // تحديث التقرير في القائمة
+        const index = state.reports.findIndex((r) => r.id === action.payload.id);
+        if (index !== -1) {
+          state.reports[index] = action.payload;
+        }
+        // تحديث currentReport إذا كان هو نفسه
+        if (state.currentReport?.id === action.payload.id) {
+          state.currentReport = action.payload;
+        }
+      })
+      .addCase(submitReport.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
