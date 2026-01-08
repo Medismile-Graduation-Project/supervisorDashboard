@@ -10,6 +10,9 @@ import {
   fetchAssignmentRequests,
   respondToAssignmentRequest,
   fetchCaseHistory,
+  supervisorDecision,
+  updateCaseStatus,
+  assignSupervisor,
 } from '@/store/slices/casesSlice';
 import { fetchSessions, reviewSession, fetchSessionById } from '@/store/slices/sessionsSlice';
 import {
@@ -47,7 +50,9 @@ const priorityColors = {
 
 const statusColors = {
   new: 'bg-sky-50 text-sky-700',
-  pending_assignment: 'bg-sky-100 text-sky-800',
+  accepted: 'bg-green-100 text-green-800',
+  rejected: 'bg-red-100 text-red-800',
+  needs_assignment_approval: 'bg-yellow-100 text-yellow-800',
   assigned: 'bg-sky-200 text-sky-800',
   in_progress: 'bg-sky-400 text-white',
   completed: 'bg-sky-500 text-white',
@@ -78,12 +83,17 @@ export default function CaseDetailsPage() {
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
   const [sessionFeedback, setSessionFeedback] = useState('');
+  const [showSupervisorDecisionModal, setShowSupervisorDecisionModal] = useState(false);
+  const [supervisorDecisionType, setSupervisorDecisionType] = useState('accept'); // 'accept' or 'reject'
+  const [supervisorDecisionNote, setSupervisorDecisionNote] = useState('');
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [newStatus, setNewStatus] = useState('');
 
   useEffect(() => {
     if (params.id) {
       dispatch(fetchCaseById(params.id));
       dispatch(fetchSessions({ caseId: params.id }));
-      dispatch(fetchAssignmentRequests({ case: params.id }));
+      dispatch(fetchAssignmentRequests());
       dispatch(fetchCaseHistory(params.id));
     }
   }, [params.id, dispatch]);
@@ -117,29 +127,25 @@ export default function CaseDetailsPage() {
     }
   };
 
-  const handleRespondToAssignment = async (requestId, status) => {
+  const handleRespondToAssignment = async (caseId, decision) => {
     try {
-      // تحويل status إلى decision format المطلوب من API
-      // status يمكن أن يكون "accepted" أو "rejected"
-      // decision يجب أن يكون "accept" أو "reject"
-      const decision = status === 'accepted' ? 'accept' : 'reject';
-      
+      // decision يجب أن يكون "approve" أو "reject"
       const result = await dispatch(
         respondToAssignmentRequest({
-          requestId,
-          decision, // "accept" أو "reject"
+          caseId: caseId || params.id,
+          decision, // "approve" أو "reject"
           supervisor_response: assignmentResponse || undefined, // optional
         })
       );
       if (respondToAssignmentRequest.fulfilled.match(result)) {
         toast.success(
-          decision === 'accept' ? 'تم قبول طلب الإسناد' : 'تم رفض طلب الإسناد'
+          decision === 'approve' ? 'تم قبول طلب الإسناد' : 'تم رفض طلب الإسناد'
         );
         setShowAssignmentModal(false);
         setSelectedRequest(null);
         setAssignmentResponse('');
         dispatch(fetchCaseById(params.id));
-        dispatch(fetchAssignmentRequests({ case: params.id }));
+        dispatch(fetchAssignmentRequests());
       } else {
         const errorMessage = result.payload?.detail || 
                            result.payload?.message || 
@@ -179,9 +185,11 @@ export default function CaseDetailsPage() {
   };
 
   const getNextStatus = (currentStatus) => {
+    // حسب التوثيق الجديد
     const transitions = {
-      new: 'pending_assignment',
-      pending_assignment: 'assigned',
+      new: null, // يحتاج قرار المشرف أولاً
+      accepted: 'needs_assignment_approval',
+      needs_assignment_approval: 'assigned',
       assigned: 'in_progress',
       in_progress: 'completed',
       completed: 'closed',
@@ -189,19 +197,53 @@ export default function CaseDetailsPage() {
     return transitions[currentStatus];
   };
 
-  const handleStatusChange = async (newStatus) => {
+  const handleStatusChange = async (status) => {
     try {
       const result = await dispatch(
-        updateCase({ caseId: params.id, data: { status: newStatus } })
+        updateCaseStatus({ caseId: params.id, status })
       );
-      if (updateCase.fulfilled.match(result)) {
-        toast.success('تم تغيير حالة الحالة بنجاح');
+      if (updateCaseStatus.fulfilled.match(result)) {
+        toast.success('تم تحديث حالة الحالة بنجاح');
         dispatch(fetchCaseById(params.id));
+        setShowStatusModal(false);
       } else {
-        toast.error(result.payload?.message || 'فشل تغيير الحالة');
+        const errorMessage = result.payload?.detail || 
+                           result.payload?.message || 
+                           result.payload?.error ||
+                           'فشل تحديث حالة الحالة';
+        toast.error(errorMessage);
       }
     } catch (error) {
-      toast.error('حدث خطأ أثناء تغيير الحالة');
+      toast.error('حدث خطأ أثناء تحديث حالة الحالة');
+    }
+  };
+
+  const handleSupervisorDecision = async () => {
+    try {
+      const result = await dispatch(
+        supervisorDecision({
+          caseId: params.id,
+          decision: supervisorDecisionType, // 'accept' or 'reject'
+          note: supervisorDecisionNote || undefined,
+        })
+      );
+      if (supervisorDecision.fulfilled.match(result)) {
+        toast.success(
+          supervisorDecisionType === 'accept' ? 'تم قبول الحالة' : 'تم رفض الحالة'
+        );
+        setShowSupervisorDecisionModal(false);
+        setSupervisorDecisionNote('');
+        dispatch(fetchCaseById(params.id));
+        dispatch(fetchCaseHistory(params.id));
+      } else {
+        const errorMessage = result.payload?.detail || 
+                             result.payload?.message || 
+                             result.payload?.error ||
+                             'فشل معالجة القرار';
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      toast.error('حدث خطأ أثناء معالجة القرار');
     }
   };
 
@@ -475,11 +517,40 @@ export default function CaseDetailsPage() {
                         إجراءات سريعة
                       </h2>
                       <div className="flex flex-wrap gap-3">
+                        {/* قرار المشرف على حالة جديدة */}
+                        {currentCase.status === 'new' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setSupervisorDecisionType('accept');
+                                setShowSupervisorDecisionModal(true);
+                              }}
+                              className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 transition-colors"
+                              style={{ fontFamily: 'inherit' }}
+                            >
+                              <CheckCircleIcon className="h-5 w-5" />
+                              قبول الحالة
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSupervisorDecisionType('reject');
+                                setShowSupervisorDecisionModal(true);
+                              }}
+                              className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-colors"
+                              style={{ fontFamily: 'inherit' }}
+                            >
+                              <XCircleIcon className="h-5 w-5" />
+                              رفض الحالة
+                            </button>
+                          </>
+                        )}
+                        {/* تغيير الحالة */}
                         {getNextStatus(currentCase.status) && (
                           <button
-                            onClick={() =>
-                              handleStatusChange(getNextStatus(currentCase.status))
-                            }
+                            onClick={() => {
+                              setNewStatus(getNextStatus(currentCase.status));
+                              setShowStatusModal(true);
+                            }}
                             className="flex items-center gap-2 rounded-lg bg-sky-400 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors"
                             style={{ fontFamily: 'inherit' }}
                           >
@@ -489,7 +560,10 @@ export default function CaseDetailsPage() {
                         )}
                         {currentCase.status === 'completed' && (
                           <button
-                            onClick={() => handleStatusChange('closed')}
+                            onClick={() => {
+                              setNewStatus('closed');
+                              setShowStatusModal(true);
+                            }}
                             className="flex items-center gap-2 rounded-lg bg-dark-lighter px-4 py-2.5 text-sm font-semibold text-light hover:bg-dark focus:outline-none focus:ring-2 focus:ring-dark-lighter focus:ring-offset-2 transition-colors"
                             style={{ fontFamily: 'inherit' }}
                           >
@@ -777,7 +851,7 @@ export default function CaseDetailsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  handleRespondToAssignment(selectedRequest.id, assignmentAction);
+                  handleRespondToAssignment(selectedRequest.case || params.id, assignmentAction === 'accepted' ? 'approve' : 'reject');
                 }}
                 className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                   assignmentAction === 'accepted'
@@ -922,6 +996,86 @@ export default function CaseDetailsPage() {
                   setShowSessionModal(false);
                   setSelectedSession(null);
                   setSessionFeedback('');
+                }}
+                className="flex-1 rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-dark hover:bg-sky-50 hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
+                style={{ fontFamily: 'inherit' }}
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Supervisor Decision Modal - قرار المشرف على حالة جديدة */}
+      {showSupervisorDecisionModal && (
+        <div className="fixed inset-0 bg-dark/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-dark mb-4" style={{ fontFamily: 'inherit' }}>
+              {supervisorDecision === 'accept' ? 'قبول الحالة' : 'رفض الحالة'}
+            </h3>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-dark mb-2" style={{ fontFamily: 'inherit' }}>
+                ملاحظة (اختياري)
+              </label>
+              <textarea
+                value={supervisorDecisionNote}
+                onChange={(e) => setSupervisorDecisionNote(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/50 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all resize-none"
+                placeholder="أضف ملاحظة حول القرار..."
+                style={{ fontFamily: 'inherit' }}
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSupervisorDecision}
+                className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  supervisorDecision === 'accept'
+                    ? 'bg-green-500 hover:bg-green-600 focus:ring-green-400'
+                    : 'bg-red-500 hover:bg-red-600 focus:ring-red-400'
+                }`}
+                style={{ fontFamily: 'inherit' }}
+              >
+                {supervisorDecision === 'accept' ? 'قبول' : 'رفض'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowSupervisorDecisionModal(false);
+                  setSupervisorDecisionNote('');
+                }}
+                className="flex-1 rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-dark hover:bg-sky-50 hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
+                style={{ fontFamily: 'inherit' }}
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Change Modal - تغيير حالة الحالة */}
+      {showStatusModal && (
+        <div className="fixed inset-0 bg-dark/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-dark mb-4" style={{ fontFamily: 'inherit' }}>
+              تغيير حالة الحالة
+            </h3>
+            <p className="text-sm text-dark-lighter mb-4" style={{ fontFamily: 'inherit' }}>
+              هل أنت متأكد من تغيير حالة الحالة إلى <strong>{statusLabels[newStatus]}</strong>؟
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleStatusChange(newStatus)}
+                className="flex-1 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors"
+                style={{ fontFamily: 'inherit' }}
+              >
+                تأكيد
+              </button>
+              <button
+                onClick={() => {
+                  setShowStatusModal(false);
+                  setNewStatus('');
                 }}
                 className="flex-1 rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-dark hover:bg-sky-50 hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
                 style={{ fontFamily: 'inherit' }}

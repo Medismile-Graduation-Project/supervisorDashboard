@@ -37,6 +37,7 @@ const navigation = [
   { name: 'التقييمات', href: '/dashboard/evaluations', icon: DocumentTextIcon, iconSolid: DocumentTextIconSolid },
   { name: 'المحتوى', href: '/dashboard/content', icon: ChatBubbleLeftRightIcon, iconSolid: ChatBubbleLeftRightIconSolid },
   { name: 'التقارير', href: '/dashboard/reports', icon: ChartBarIcon, iconSolid: ChartBarIconSolid },
+  { name: 'المراسلة', href: '/dashboard/messaging', icon: ChatBubbleLeftRightIcon, iconSolid: ChatBubbleLeftRightIconSolid },
   { name: 'الإشعارات', href: '/dashboard/notifications', icon: BellIcon, iconSolid: BellIconSolid },
   { name: 'الدعم', href: '/dashboard/support', icon: LifebuoyIcon, iconSolid: LifebuoyIconSolid },
   { name: 'الملف الشخصي', href: '/dashboard/profile', icon: UserIcon, iconSolid: UserIconSolid },
@@ -45,6 +46,7 @@ const navigation = [
 export default function Sidebar({ isOpen = false, onClose }) {
   const pathname = usePathname();
   const { unreadCount } = useAppSelector((state) => state.notifications);
+  const { totalUnreadCount } = useAppSelector((state) => state.messaging);
 
   const handleLinkClick = () => {
     // إغلاق Sidebar على mobile عند النقر على رابط
@@ -91,6 +93,15 @@ export default function Sidebar({ isOpen = false, onClose }) {
                       : 'bg-sky-400 text-white'
                   } shadow-sm`}>
                     {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+                {item.name === 'المراسلة' && totalUnreadCount > 0 && (
+                  <span className={`absolute left-2 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
+                    isActive 
+                      ? 'bg-sky-500 text-white' 
+                      : 'bg-sky-400 text-white'
+                  } shadow-sm`}>
+                    {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
                   </span>
                 )}
               </Link>
@@ -152,6 +163,15 @@ export default function Sidebar({ isOpen = false, onClose }) {
                       : 'bg-sky-400 text-white'
                   } shadow-sm`}>
                     {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+                {item.name === 'المراسلة' && totalUnreadCount > 0 && (
+                  <span className={`absolute left-2 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
+                    isActive 
+                      ? 'bg-sky-500 text-white' 
+                      : 'bg-sky-400 text-white'
+                  } shadow-sm`}>
+                    {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
                   </span>
                 )}
               </Link>

@@ -129,24 +129,76 @@ export const updateCase = createAsyncThunk(
   }
 );
 
-// تم حذف fetchAssignmentRequests - الـ endpoint غير موجود
+// جلب طلبات الإسناد للمشرف
 export const fetchAssignmentRequests = createAsyncThunk(
   'cases/fetchAssignmentRequests',
   async (params = {}, { rejectWithValue }) => {
-    return rejectWithValue('الـ endpoint غير متاح');
+    try {
+      const response = await api.get('/cases/supervisor/assignment-requests/', { params });
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
   }
 );
 
+// قرار المشرف على طلب إسناد (endpoint جديد)
 export const respondToAssignmentRequest = createAsyncThunk(
   'cases/respondToAssignmentRequest',
-  async ({ requestId, decision, supervisor_response }, { rejectWithValue }) => {
+  async ({ caseId, decision, supervisor_response }, { rejectWithValue }) => {
     try {
-      // decision يجب أن يكون "accept" أو "reject"
-      const response = await api.patch(`/cases/assignment-requests/${requestId}/decision/`, {
-        decision, // "accept" أو "reject"
+      // decision يجب أن يكون "approve" أو "reject"
+      const response = await api.post(`/cases/${caseId}/assignment-decision/`, {
+        decision, // "approve" أو "reject"
         supervisor_response, // optional
       });
-      // API يعيد البيانات مباشرة أو في data property
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+// قرار المشرف على حالة جديدة (accept/reject)
+export const supervisorDecision = createAsyncThunk(
+  'cases/supervisorDecision',
+  async ({ caseId, decision, note }, { rejectWithValue }) => {
+    try {
+      // decision يجب أن يكون "accept" أو "reject"
+      const response = await api.post(`/cases/${caseId}/supervisor-decision/`, {
+        decision, // "accept" أو "reject"
+        note, // optional
+      });
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+// تغيير حالة الحالة
+export const updateCaseStatus = createAsyncThunk(
+  'cases/updateCaseStatus',
+  async ({ caseId, status }, { rejectWithValue }) => {
+    try {
+      const response = await api.patch(`/cases/${caseId}/status/`, {
+        status,
+      });
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+// تعيين مشرف للحالة
+export const assignSupervisor = createAsyncThunk(
+  'cases/assignSupervisor',
+  async ({ caseId, supervisor_id }, { rejectWithValue }) => {
+    try {
+      const response = await api.patch(`/cases/${caseId}/assign-supervisor/`, {
+        supervisor_id,
+      });
       return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -238,19 +290,69 @@ const casesSlice = createSlice({
         }
       })
       // Fetch Assignment Requests
-      .addCase(fetchAssignmentRequests.fulfilled, (state, action) => {
-        state.assignmentRequests = [];
+      .addCase(fetchAssignmentRequests.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
-      .addCase(fetchAssignmentRequests.rejected, (state) => {
+      .addCase(fetchAssignmentRequests.fulfilled, (state, action) => {
+        state.loading = false;
+        state.assignmentRequests = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchAssignmentRequests.rejected, (state, action) => {
+        state.loading = false;
         state.assignmentRequests = [];
+        state.error = action.payload;
       })
       // Respond to Assignment Request
       .addCase(respondToAssignmentRequest.fulfilled, (state, action) => {
-        const index = state.assignmentRequests.findIndex(
-          (r) => r.id === action.payload.id
+        // تحديث الحالة في القائمة
+        const caseIndex = state.cases.findIndex((c) => c.id === action.payload.id);
+        if (caseIndex !== -1) {
+          state.cases[caseIndex] = action.payload;
+        }
+        // تحديث currentCase إذا كان نفس الحالة
+        if (state.currentCase?.id === action.payload.id) {
+          state.currentCase = action.payload;
+        }
+        // إزالة الطلب من قائمة الطلبات المعلقة
+        state.assignmentRequests = state.assignmentRequests.filter(
+          (req) => req.case !== action.payload.id || req.status !== 'pending'
         );
-        if (index !== -1) {
-          state.assignmentRequests[index] = action.payload;
+      })
+      // Supervisor Decision (قرار على حالة جديدة)
+      .addCase(supervisorDecision.fulfilled, (state, action) => {
+        // تحديث الحالة في القائمة
+        const caseIndex = state.cases.findIndex((c) => c.id === action.payload.id);
+        if (caseIndex !== -1) {
+          state.cases[caseIndex] = action.payload;
+        }
+        // تحديث currentCase إذا كان نفس الحالة
+        if (state.currentCase?.id === action.payload.id) {
+          state.currentCase = action.payload;
+        }
+      })
+      // Update Case Status
+      .addCase(updateCaseStatus.fulfilled, (state, action) => {
+        // تحديث الحالة في القائمة
+        const caseIndex = state.cases.findIndex((c) => c.id === action.payload.id);
+        if (caseIndex !== -1) {
+          state.cases[caseIndex] = action.payload;
+        }
+        // تحديث currentCase إذا كان نفس الحالة
+        if (state.currentCase?.id === action.payload.id) {
+          state.currentCase = action.payload;
+        }
+      })
+      // Assign Supervisor
+      .addCase(assignSupervisor.fulfilled, (state, action) => {
+        // تحديث الحالة في القائمة
+        const caseIndex = state.cases.findIndex((c) => c.id === action.payload.id);
+        if (caseIndex !== -1) {
+          state.cases[caseIndex] = action.payload;
+        }
+        // تحديث currentCase إذا كان نفس الحالة
+        if (state.currentCase?.id === action.payload.id) {
+          state.currentCase = action.payload;
         }
       })
       // Fetch Case History
