@@ -1,8 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAppSelector } from '@/hooks/useAppSelector';
+import { useAppDispatch } from '@/hooks/useAppDispatch';
+import { fetchAssignmentRequests } from '@/store/slices/casesSlice';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import {
   HomeIcon,
@@ -15,6 +18,7 @@ import {
   BellIcon,
   UserIcon,
   LifebuoyIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
@@ -27,11 +31,13 @@ import {
   BellIcon as BellIconSolid,
   UserIcon as UserIconSolid,
   LifebuoyIcon as LifebuoyIconSolid,
+  ClipboardDocumentListIcon as ClipboardDocumentListIconSolid,
 } from '@heroicons/react/24/solid';
 
 const navigation = [
   { name: 'الرئيسية', href: '/dashboard', icon: HomeIcon, iconSolid: HomeIconSolid },
   { name: 'الحالات', href: '/dashboard/cases', icon: FolderIcon, iconSolid: FolderIconSolid },
+  { name: 'طلبات الإسناد', href: '/dashboard/cases/assignment-requests', icon: ClipboardDocumentListIcon, iconSolid: ClipboardDocumentListIconSolid },
   { name: 'الجلسات', href: '/dashboard/sessions', icon: ClipboardDocumentCheckIcon, iconSolid: ClipboardDocumentCheckIconSolid },
   { name: 'المواعيد', href: '/dashboard/appointments', icon: CalendarIcon, iconSolid: CalendarIconSolid },
   { name: 'التقييمات', href: '/dashboard/evaluations', icon: DocumentTextIcon, iconSolid: DocumentTextIconSolid },
@@ -45,8 +51,18 @@ const navigation = [
 
 export default function Sidebar({ isOpen = false, onClose }) {
   const pathname = usePathname();
+  const dispatch = useAppDispatch();
   const { unreadCount } = useAppSelector((state) => state.notifications);
   const { totalUnreadCount } = useAppSelector((state) => state.messaging);
+  const { assignmentRequests } = useAppSelector((state) => state.cases);
+  const pendingAssignmentsCount = Array.isArray(assignmentRequests)
+    ? assignmentRequests.filter((r) => r.status === 'pending').length
+    : 0;
+
+  // جلب طلبات الإسناد عند تحميل الـ Sidebar
+  useEffect(() => {
+    dispatch(fetchAssignmentRequests({ status: 'pending' }));
+  }, [dispatch]);
 
   const handleLinkClick = () => {
     // إغلاق Sidebar على mobile عند النقر على رابط
@@ -102,6 +118,15 @@ export default function Sidebar({ isOpen = false, onClose }) {
                       : 'bg-sky-400 text-white'
                   } shadow-sm`}>
                     {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                  </span>
+                )}
+                {item.name === 'طلبات الإسناد' && pendingAssignmentsCount > 0 && (
+                  <span className={`absolute left-2 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
+                    isActive 
+                      ? 'bg-yellow-500 text-white' 
+                      : 'bg-yellow-400 text-white'
+                  } shadow-sm`}>
+                    {pendingAssignmentsCount > 9 ? '9+' : pendingAssignmentsCount}
                   </span>
                 )}
               </Link>
@@ -172,6 +197,15 @@ export default function Sidebar({ isOpen = false, onClose }) {
                       : 'bg-sky-400 text-white'
                   } shadow-sm`}>
                     {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                  </span>
+                )}
+                {item.name === 'طلبات الإسناد' && pendingAssignmentsCount > 0 && (
+                  <span className={`absolute left-2 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
+                    isActive 
+                      ? 'bg-yellow-500 text-white' 
+                      : 'bg-yellow-400 text-white'
+                  } shadow-sm`}>
+                    {pendingAssignmentsCount > 9 ? '9+' : pendingAssignmentsCount}
                   </span>
                 )}
               </Link>

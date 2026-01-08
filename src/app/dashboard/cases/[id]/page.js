@@ -7,8 +7,6 @@ import { useAppSelector } from '@/hooks/useAppSelector';
 import {
   fetchCaseById,
   updateCase,
-  fetchAssignmentRequests,
-  respondToAssignmentRequest,
   fetchCaseHistory,
   supervisorDecision,
   updateCaseStatus,
@@ -65,7 +63,6 @@ export default function CaseDetailsPage() {
   const dispatch = useAppDispatch();
   const { currentCase, loading, caseHistory } = useAppSelector((state) => state.cases);
   const { sessions, currentSession } = useAppSelector((state) => state.sessions);
-  const { assignmentRequests } = useAppSelector((state) => state.cases);
 
   const [activeTab, setActiveTab] = useState('details');
   const [isEditing, setIsEditing] = useState(false);
@@ -76,10 +73,6 @@ export default function CaseDetailsPage() {
     is_public: false,
     status: '',
   });
-  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const [assignmentResponse, setAssignmentResponse] = useState('');
-  const [assignmentAction, setAssignmentAction] = useState('accepted'); // 'accepted' or 'rejected'
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
   const [sessionFeedback, setSessionFeedback] = useState('');
@@ -93,7 +86,6 @@ export default function CaseDetailsPage() {
     if (params.id) {
       dispatch(fetchCaseById(params.id));
       dispatch(fetchSessions({ caseId: params.id }));
-      dispatch(fetchAssignmentRequests());
       dispatch(fetchCaseHistory(params.id));
     }
   }, [params.id, dispatch]);
@@ -127,36 +119,6 @@ export default function CaseDetailsPage() {
     }
   };
 
-  const handleRespondToAssignment = async (caseId, decision) => {
-    try {
-      // decision يجب أن يكون "approve" أو "reject"
-      const result = await dispatch(
-        respondToAssignmentRequest({
-          caseId: caseId || params.id,
-          decision, // "approve" أو "reject"
-          supervisor_response: assignmentResponse || undefined, // optional
-        })
-      );
-      if (respondToAssignmentRequest.fulfilled.match(result)) {
-        toast.success(
-          decision === 'approve' ? 'تم قبول طلب الإسناد' : 'تم رفض طلب الإسناد'
-        );
-        setShowAssignmentModal(false);
-        setSelectedRequest(null);
-        setAssignmentResponse('');
-        dispatch(fetchCaseById(params.id));
-        dispatch(fetchAssignmentRequests());
-      } else {
-        const errorMessage = result.payload?.detail || 
-                           result.payload?.message || 
-                           result.payload?.error ||
-                           'فشل معالجة الطلب';
-        toast.error(errorMessage);
-      }
-    } catch (error) {
-      toast.error('حدث خطأ أثناء معالجة الطلب');
-    }
-  };
 
   const handleReviewSession = async (sessionId, status) => {
     try {
@@ -277,9 +239,6 @@ export default function CaseDetailsPage() {
     );
   }
 
-  const pendingRequests = Array.isArray(assignmentRequests) 
-    ? assignmentRequests.filter((r) => r.status === 'pending' && r.case === params.id)
-    : [];
   
   const sessionsNeedingReview = Array.isArray(sessions)
     ? sessions.filter((s) => s.status === 'completed' || s.status === 'needs_review')
@@ -342,11 +301,6 @@ export default function CaseDetailsPage() {
             عامة
           </span>
         )}
-        {pendingRequests.length > 0 && (
-          <span className="rounded-full bg-sky-200 px-3 py-1 text-xs font-semibold text-sky-800 whitespace-nowrap" style={{ fontFamily: 'inherit' }}>
-            {pendingRequests.length} طلب إسناد
-          </span>
-        )}
         {sessionsNeedingReview.length > 0 && (
           <span className="rounded-full bg-sky-300 px-3 py-1 text-xs font-semibold text-sky-900 whitespace-nowrap" style={{ fontFamily: 'inherit' }}>
             {sessionsNeedingReview.length} جلسة تحتاج مراجعة
@@ -359,7 +313,6 @@ export default function CaseDetailsPage() {
         <nav className="flex gap-6 overflow-x-auto">
           {[
             { id: 'details', label: 'التفاصيل' },
-            { id: 'assignments', label: 'طلبات الإسناد', badge: pendingRequests.length },
             { id: 'sessions', label: 'الجلسات', badge: sessionsNeedingReview.length },
             { id: 'history', label: 'السجل' },
           ].map((tab) => (
@@ -633,78 +586,6 @@ export default function CaseDetailsPage() {
           </div>
         )}
 
-        {activeTab === 'assignments' && (
-          <div className="rounded-lg bg-white border border-sky-100 overflow-hidden shadow-sm">
-            {pendingRequests.length === 0 ? (
-              <div className="p-12 text-center">
-                <p className="text-base font-semibold text-dark" style={{ fontFamily: 'inherit' }}>
-                  لا توجد طلبات إسناد معلقة
-                </p>
-                <p className="mt-2 text-sm text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
-                  لا توجد طلبات إسناد معلقة لهذه الحالة
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-sky-100">
-                {pendingRequests.map((request) => (
-                  <div key={request.id} className="p-5 sm:p-6 hover:bg-sky-50 transition-colors">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2.5 mb-3 flex-wrap">
-                          <h3 className="text-base sm:text-lg font-semibold text-dark" style={{ fontFamily: 'inherit' }}>
-                            {request.student?.first_name} {request.student?.last_name}
-                          </h3>
-                          <span className="text-xs sm:text-sm text-dark-lighter" style={{ fontFamily: 'inherit' }}>
-                            {request.student?.email}
-                          </span>
-                        </div>
-                        <p className="text-sm text-dark-lighter mb-4 leading-relaxed" style={{ fontFamily: 'inherit' }}>
-                          {request.message}
-                        </p>
-                        <p className="text-xs text-dark-lighter" style={{ fontFamily: 'inherit' }}>
-                          {new Date(request.created_at).toLocaleDateString('ar-SA', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </p>
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setAssignmentAction('accepted');
-                            setAssignmentResponse('');
-                            setShowAssignmentModal(true);
-                          }}
-                          className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors"
-                          style={{ fontFamily: 'inherit' }}
-                        >
-                          <CheckCircleIcon className="h-5 w-5" />
-                          قبول
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setAssignmentAction('rejected');
-                            setAssignmentResponse('');
-                            setShowAssignmentModal(true);
-                          }}
-                          className="flex items-center gap-2 rounded-lg bg-dark-lighter px-4 py-2.5 text-sm font-semibold text-light hover:bg-dark focus:outline-none focus:ring-2 focus:ring-dark-lighter focus:ring-offset-2 transition-colors"
-                          style={{ fontFamily: 'inherit' }}
-                        >
-                          <XCircleIcon className="h-5 w-5" />
-                          رفض
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
         {activeTab === 'sessions' && (
           <div className="rounded-lg bg-white border border-sky-100 overflow-hidden shadow-sm">
             {!Array.isArray(sessions) || sessions.length === 0 ? (
@@ -828,55 +709,6 @@ export default function CaseDetailsPage() {
         )}
       </div>
 
-      {/* Assignment Modal */}
-      {showAssignmentModal && selectedRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white border border-sky-100 p-5 sm:p-6 shadow-lg">
-            <h3 className="text-lg sm:text-xl font-bold text-dark mb-4" style={{ fontFamily: 'inherit' }}>
-              {assignmentAction === 'accepted' ? 'قبول' : 'رفض'} طلب الإسناد
-            </h3>
-            <div className="mb-5">
-              <label className="block text-sm font-semibold text-dark mb-2.5" style={{ fontFamily: 'inherit' }}>
-                رد المشرف (اختياري)
-              </label>
-              <textarea
-                value={assignmentResponse}
-                onChange={(e) => setAssignmentResponse(e.target.value)}
-                rows={4}
-                className="w-full rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/50 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all resize-none"
-                placeholder="أضف ملاحظاتك..."
-                style={{ fontFamily: 'inherit' }}
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  handleRespondToAssignment(selectedRequest.case || params.id, assignmentAction === 'accepted' ? 'approve' : 'reject');
-                }}
-                className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                  assignmentAction === 'accepted'
-                    ? 'bg-sky-500 hover:bg-sky-600 focus:ring-sky-400'
-                    : 'bg-dark-lighter hover:bg-dark focus:ring-dark-lighter'
-                }`}
-                style={{ fontFamily: 'inherit' }}
-              >
-                تأكيد {assignmentAction === 'accepted' ? 'القبول' : 'الرفض'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowAssignmentModal(false);
-                  setSelectedRequest(null);
-                  setAssignmentResponse('');
-                }}
-                className="flex-1 rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm font-medium text-dark hover:bg-sky-50 hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
-                style={{ fontFamily: 'inherit' }}
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Session Review Modal */}
       {showSessionModal && selectedSession && (

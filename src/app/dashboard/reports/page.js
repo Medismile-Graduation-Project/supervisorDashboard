@@ -67,12 +67,18 @@ export default function ReportsPage() {
     target_id: '',
     title: '',
     description: '',
-    content: '',
+    diagnosis: '',
+    summary: '',
+    treatment_plan: '',
+    notes: '',
   });
   const [editFormData, setEditFormData] = useState({
     title: '',
     description: '',
-    content: '',
+    diagnosis: '',
+    summary: '',
+    treatment_plan: '',
+    notes: '',
   });
   const [approveFormData, setApproveFormData] = useState({
     review_notes: '',
@@ -125,17 +131,24 @@ export default function ReportsPage() {
     }
 
     try {
-      // تحويل content من string إلى object إذا كان string
-      let contentObj = {};
-      if (createFormData.content) {
-        try {
-          contentObj = typeof createFormData.content === 'string' 
-            ? JSON.parse(createFormData.content) 
-            : createFormData.content;
-        } catch (e) {
-          // إذا فشل parsing، نستخدمه كـ summary
-          contentObj = { summary: createFormData.content };
-        }
+      // بناء object المحتوى من الحقول المنفصلة
+      const contentObj = {};
+      if (createFormData.diagnosis?.trim()) {
+        contentObj.diagnosis = createFormData.diagnosis.trim();
+      }
+      if (createFormData.summary?.trim()) {
+        contentObj.summary = createFormData.summary.trim();
+      }
+      if (createFormData.treatment_plan?.trim()) {
+        contentObj.treatment_plan = createFormData.treatment_plan.trim();
+      }
+      if (createFormData.notes?.trim()) {
+        contentObj.notes = createFormData.notes.trim();
+      }
+      // إذا كان هناك محتوى من حقول أخرى، يمكن إضافته هنا
+      // للأنواع الأخرى من التقارير
+      if (createFormData.report_type !== 'clinical_case' && createFormData.summary?.trim()) {
+        contentObj.summary = createFormData.summary.trim();
       }
 
       const result = await dispatch(createReport({
@@ -144,7 +157,7 @@ export default function ReportsPage() {
         target_id: createFormData.target_id,
         title: createFormData.title,
         description: createFormData.description || '',
-        content: contentObj,
+        content: Object.keys(contentObj).length > 0 ? contentObj : {},
       }));
 
       if (createReport.fulfilled.match(result)) {
@@ -156,7 +169,10 @@ export default function ReportsPage() {
           target_id: '',
           title: '',
           description: '',
-          content: '',
+          diagnosis: '',
+          summary: '',
+          treatment_plan: '',
+          notes: '',
         });
         dispatch(fetchReports());
       } else {
@@ -180,20 +196,15 @@ export default function ReportsPage() {
     setSelectedReport(report);
     setSelectedReportId(report.id);
     
-    // تحويل content من object إلى string إذا كان object
-    let contentString = '';
-    if (report.content) {
-      if (typeof report.content === 'object') {
-        contentString = JSON.stringify(report.content, null, 2);
-      } else {
-        contentString = report.content;
-      }
-    }
-    
+    // استخراج الحقول من content object
+    const content = report.content || {};
     setEditFormData({
       title: report.title || '',
       description: report.description || '',
-      content: contentString,
+      diagnosis: content.diagnosis || '',
+      summary: content.summary || '',
+      treatment_plan: content.treatment_plan || '',
+      notes: content.notes || '',
     });
     setShowEditModal(true);
   };
@@ -207,11 +218,26 @@ export default function ReportsPage() {
     }
 
     try {
+      // بناء object المحتوى من الحقول المنفصلة
+      const contentObj = {};
+      if (editFormData.diagnosis?.trim()) {
+        contentObj.diagnosis = editFormData.diagnosis.trim();
+      }
+      if (editFormData.summary?.trim()) {
+        contentObj.summary = editFormData.summary.trim();
+      }
+      if (editFormData.treatment_plan?.trim()) {
+        contentObj.treatment_plan = editFormData.treatment_plan.trim();
+      }
+      if (editFormData.notes?.trim()) {
+        contentObj.notes = editFormData.notes.trim();
+      }
+
       const result = await dispatch(updateReport({
         reportId: selectedReportId,
         title: editFormData.title,
-        description: editFormData.description,
-        content: editFormData.content,
+        description: editFormData.description || '',
+        content: Object.keys(contentObj).length > 0 ? contentObj : {},
       }));
 
       if (updateReport.fulfilled.match(result)) {
@@ -219,7 +245,14 @@ export default function ReportsPage() {
         setShowEditModal(false);
         setSelectedReport(null);
         setSelectedReportId(null);
-        setEditFormData({ title: '', description: '', content: '' });
+        setEditFormData({
+          title: '',
+          description: '',
+          diagnosis: '',
+          summary: '',
+          treatment_plan: '',
+          notes: '',
+        });
         dispatch(fetchReports());
         if (showDetailsModal) {
           dispatch(fetchReportById(selectedReportId));
@@ -937,7 +970,7 @@ export default function ReportsPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-dark mb-2.5">
-                  الوصف (اختياري)
+                  الوصف <span className="text-dark-lighter text-xs">(اختياري)</span>
                 </label>
                 <textarea
                   value={createFormData.description}
@@ -948,21 +981,76 @@ export default function ReportsPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-dark mb-2.5">
-                  المحتوى (JSON أو نص) (اختياري)
-                </label>
-                <textarea
-                  value={createFormData.content}
-                  onChange={(e) => setCreateFormData({ ...createFormData, content: e.target.value })}
-                  rows={6}
-                  placeholder='{"diagnosis": "...", "sessions": []} أو نص عادي'
-                  className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200 resize-none font-mono text-xs"
-                />
-                <p className="mt-1 text-xs text-dark-lighter">
-                  يمكنك إدخال JSON مثل: {"{"}"diagnosis": "...", "sessions": []{"}"} أو نص عادي
-                </p>
-              </div>
+              {createFormData.report_type === 'clinical_case' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2.5">
+                      التشخيص <span className="text-dark-lighter text-xs">(اختياري)</span>
+                    </label>
+                    <textarea
+                      value={createFormData.diagnosis}
+                      onChange={(e) => setCreateFormData({ ...createFormData, diagnosis: e.target.value })}
+                      rows={4}
+                      placeholder="أدخل التشخيص..."
+                      className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2.5">
+                      الملخص <span className="text-dark-lighter text-xs">(اختياري)</span>
+                    </label>
+                    <textarea
+                      value={createFormData.summary}
+                      onChange={(e) => setCreateFormData({ ...createFormData, summary: e.target.value })}
+                      rows={4}
+                      placeholder="أدخل ملخص التقرير..."
+                      className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2.5">
+                      خطة العلاج <span className="text-dark-lighter text-xs">(اختياري)</span>
+                    </label>
+                    <textarea
+                      value={createFormData.treatment_plan}
+                      onChange={(e) => setCreateFormData({ ...createFormData, treatment_plan: e.target.value })}
+                      rows={4}
+                      placeholder="أدخل خطة العلاج..."
+                      className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2.5">
+                      ملاحظات <span className="text-dark-lighter text-xs">(اختياري)</span>
+                    </label>
+                    <textarea
+                      value={createFormData.notes}
+                      onChange={(e) => setCreateFormData({ ...createFormData, notes: e.target.value })}
+                      rows={3}
+                      placeholder="أدخل ملاحظات إضافية..."
+                      className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200 resize-none"
+                    />
+                  </div>
+                </>
+              )}
+
+              {createFormData.report_type !== 'clinical_case' && (
+                <div>
+                  <label className="block text-sm font-semibold text-dark mb-2.5">
+                    المحتوى <span className="text-dark-lighter text-xs">(اختياري)</span>
+                  </label>
+                  <textarea
+                    value={createFormData.summary}
+                    onChange={(e) => setCreateFormData({ ...createFormData, summary: e.target.value })}
+                    rows={6}
+                    placeholder="أدخل محتوى التقرير..."
+                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200 resize-none"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 mt-6">
@@ -981,7 +1069,10 @@ export default function ReportsPage() {
                     target_id: '',
                     title: '',
                     description: '',
-                    content: '',
+                    diagnosis: '',
+                    summary: '',
+                    treatment_plan: '',
+                    notes: '',
                   });
                 }}
                 className="flex-1 rounded-lg border-2 border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
@@ -1027,7 +1118,7 @@ export default function ReportsPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-dark mb-2.5">
-                  الوصف (اختياري)
+                  الوصف <span className="text-dark-lighter text-xs">(اختياري)</span>
                 </label>
                 <textarea
                   value={editFormData.description}
@@ -1038,21 +1129,76 @@ export default function ReportsPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-dark mb-2.5">
-                  المحتوى (JSON أو نص) (اختياري)
-                </label>
-                <textarea
-                  value={editFormData.content}
-                  onChange={(e) => setEditFormData({ ...editFormData, content: e.target.value })}
-                  rows={8}
-                  placeholder='{"diagnosis": "...", "sessions": []} أو نص عادي'
-                  className="w-full rounded-lg border-2 border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-orange-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition-all duration-200 resize-none font-mono text-xs"
-                />
-                <p className="mt-1 text-xs text-dark-lighter">
-                  يمكنك إدخال JSON مثل: {"{"}"diagnosis": "...", "sessions": []{"}"} أو نص عادي
-                </p>
-              </div>
+              {selectedReport?.report_type === 'clinical_case' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2.5">
+                      التشخيص <span className="text-dark-lighter text-xs">(اختياري)</span>
+                    </label>
+                    <textarea
+                      value={editFormData.diagnosis}
+                      onChange={(e) => setEditFormData({ ...editFormData, diagnosis: e.target.value })}
+                      rows={4}
+                      placeholder="أدخل التشخيص..."
+                      className="w-full rounded-lg border-2 border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-orange-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition-all duration-200 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2.5">
+                      الملخص <span className="text-dark-lighter text-xs">(اختياري)</span>
+                    </label>
+                    <textarea
+                      value={editFormData.summary}
+                      onChange={(e) => setEditFormData({ ...editFormData, summary: e.target.value })}
+                      rows={4}
+                      placeholder="أدخل ملخص التقرير..."
+                      className="w-full rounded-lg border-2 border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-orange-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition-all duration-200 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2.5">
+                      خطة العلاج <span className="text-dark-lighter text-xs">(اختياري)</span>
+                    </label>
+                    <textarea
+                      value={editFormData.treatment_plan}
+                      onChange={(e) => setEditFormData({ ...editFormData, treatment_plan: e.target.value })}
+                      rows={4}
+                      placeholder="أدخل خطة العلاج..."
+                      className="w-full rounded-lg border-2 border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-orange-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition-all duration-200 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2.5">
+                      ملاحظات <span className="text-dark-lighter text-xs">(اختياري)</span>
+                    </label>
+                    <textarea
+                      value={editFormData.notes}
+                      onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                      rows={3}
+                      placeholder="أدخل ملاحظات إضافية..."
+                      className="w-full rounded-lg border-2 border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-orange-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition-all duration-200 resize-none"
+                    />
+                  </div>
+                </>
+              )}
+
+              {selectedReport?.report_type !== 'clinical_case' && (
+                <div>
+                  <label className="block text-sm font-semibold text-dark mb-2.5">
+                    المحتوى <span className="text-dark-lighter text-xs">(اختياري)</span>
+                  </label>
+                  <textarea
+                    value={editFormData.summary}
+                    onChange={(e) => setEditFormData({ ...editFormData, summary: e.target.value })}
+                    rows={6}
+                    placeholder="أدخل محتوى التقرير..."
+                    className="w-full rounded-lg border-2 border-orange-200 bg-orange-50 px-4 py-2.5 text-sm text-dark placeholder-dark-lighter/60 focus:border-orange-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition-all duration-200 resize-none"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 mt-6">
@@ -1067,7 +1213,14 @@ export default function ReportsPage() {
                   setShowEditModal(false);
                   setSelectedReport(null);
                   setSelectedReportId(null);
-                  setEditFormData({ title: '', description: '', content: '' });
+                  setEditFormData({
+          title: '',
+          description: '',
+          diagnosis: '',
+          summary: '',
+          treatment_plan: '',
+          notes: '',
+        });
                 }}
                 className="flex-1 rounded-lg border-2 border-orange-200 bg-white px-4 py-2.5 text-sm font-semibold text-dark hover:bg-orange-50 hover:border-orange-300 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-400/20"
               >
