@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import {
@@ -13,12 +14,13 @@ import {
   ClockIcon,
   UserIcon,
   BuildingOfficeIcon,
+  EyeIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 const statusLabels = {
   scheduled: 'مجدولة',
-  confirmed: 'مؤكدة',
+  rescheduled: 'أعيد جدولتها',
   completed: 'مكتملة',
   cancelled: 'ملغاة',
   no_show: 'لم يحضر',
@@ -26,14 +28,15 @@ const statusLabels = {
 
 const statusColors = {
   scheduled: 'bg-sky-100 text-sky-800',
-  confirmed: 'bg-sky-200 text-sky-800',
-  completed: 'bg-sky-500 text-white',
-  cancelled: 'bg-dark-lighter text-light',
-  no_show: 'bg-sky-50 text-sky-700',
+  rescheduled: 'bg-yellow-100 text-yellow-800',
+  completed: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+  no_show: 'bg-gray-100 text-gray-800',
 };
 
 export default function AppointmentsPage() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { appointments = [], loading } = useAppSelector((state) => state.appointments);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -72,11 +75,12 @@ export default function AppointmentsPage() {
   const stats = {
     total: Array.isArray(appointments) ? appointments.length : 0,
     scheduled: Array.isArray(appointments) ? appointments.filter((a) => a.status === 'scheduled').length : 0,
-    confirmed: Array.isArray(appointments) ? appointments.filter((a) => a.status === 'confirmed').length : 0,
+    rescheduled: Array.isArray(appointments) ? appointments.filter((a) => a.status === 'rescheduled').length : 0,
     completed: Array.isArray(appointments) ? appointments.filter((a) => a.status === 'completed').length : 0,
     today: Array.isArray(appointments) ? appointments.filter((a) => {
       const today = new Date().toISOString().split('T')[0];
-      return a.appointment_date?.startsWith(today);
+      const scheduledDate = a.scheduled_at || a.appointment_date;
+      return scheduledDate && scheduledDate.startsWith(today);
     }).length : 0,
   };
 
@@ -128,14 +132,14 @@ export default function AppointmentsPage() {
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-dark-lighter mb-2" style={{ fontFamily: 'inherit' }}>
-                مؤكدة
+                أعيد جدولتها
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-dark" style={{ fontFamily: 'inherit' }}>
-                {stats.confirmed}
+                {stats.rescheduled}
               </p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-sky-200 flex items-center justify-center flex-shrink-0">
-              <div className="h-4 w-4 rounded-full bg-sky-600"></div>
+            <div className="h-9 w-9 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+              <div className="h-4 w-4 rounded-full bg-yellow-600"></div>
             </div>
           </div>
         </div>
@@ -326,12 +330,28 @@ export default function AppointmentsPage() {
                       <div className="flex items-center gap-2.5 text-sm text-dark-lighter">
                         <ClockIcon className="h-5 w-5 text-sky-500 flex-shrink-0" />
                         <span style={{ fontFamily: 'inherit' }}>
-                          {new Date(appointment.appointment_date).toLocaleDateString('ar-SA', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                          {appointment.appointment_time && (
+                          {appointment.scheduled_at
+                            ? new Date(appointment.scheduled_at).toLocaleDateString('ar-SA', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })
+                            : appointment.appointment_date
+                            ? new Date(appointment.appointment_date).toLocaleDateString('ar-SA', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })
+                            : 'غير محدد'}
+                          {appointment.scheduled_at && (
+                            <span className="font-medium text-dark mr-2">
+                              - {new Date(appointment.scheduled_at).toLocaleTimeString('ar-SA', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                            </span>
+                          )}
+                          {!appointment.scheduled_at && appointment.appointment_time && (
                             <span className="font-medium text-dark mr-2">
                               - {appointment.appointment_time}
                             </span>
@@ -361,6 +381,16 @@ export default function AppointmentsPage() {
                         {appointment.notes}
                       </p>
                     )}
+                  </div>
+                  <div className="flex-shrink-0">
+                    <button
+                      onClick={() => router.push(`/dashboard/appointments/${appointment.id}`)}
+                      className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors"
+                      style={{ fontFamily: 'inherit' }}
+                    >
+                      <EyeIcon className="h-5 w-5" />
+                      عرض التفاصيل
+                    </button>
                   </div>
                 </div>
               </div>

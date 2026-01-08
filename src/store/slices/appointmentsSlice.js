@@ -27,12 +27,24 @@ export const createAppointment = createAsyncThunk(
   }
 );
 
+export const fetchAppointmentById = createAsyncThunk(
+  'appointments/fetchAppointmentById',
+  async (appointmentId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/appointments/${appointmentId}/`);
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 export const updateAppointment = createAsyncThunk(
   'appointments/updateAppointment',
   async ({ appointmentId, data }, { rejectWithValue }) => {
     try {
       const response = await api.patch(`/appointments/${appointmentId}/`, data);
-      return response.data.data;
+      return response.data.data || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -72,6 +84,19 @@ const appointmentsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Fetch Appointment By ID
+      .addCase(fetchAppointmentById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAppointmentById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentAppointment = action.payload;
+      })
+      .addCase(fetchAppointmentById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       // Create Appointment
       .addCase(createAppointment.fulfilled, (state, action) => {
         state.appointments.unshift(action.payload);
@@ -81,6 +106,9 @@ const appointmentsSlice = createSlice({
         const index = state.appointments.findIndex((a) => a.id === action.payload.id);
         if (index !== -1) {
           state.appointments[index] = action.payload;
+        }
+        if (state.currentAppointment?.id === action.payload.id) {
+          state.currentAppointment = action.payload;
         }
       });
   },
