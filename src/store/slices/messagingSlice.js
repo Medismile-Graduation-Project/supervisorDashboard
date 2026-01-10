@@ -85,6 +85,23 @@ export const markMessageAsRead = createAsyncThunk(
   }
 );
 
+export const createThread = createAsyncThunk(
+  'messaging/createThread',
+  async ({ student_id }, { rejectWithValue }) => {
+    try {
+      const payload = {
+        thread_type: 'material',
+        // material_id اختياري - يمكن أن يكون null أو سيتم إنشاؤه تلقائياً
+      };
+      
+      const response = await api.post('/messaging/threads/', payload);
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 const initialState = {
   threads: [],
   currentThread: null,
@@ -120,6 +137,90 @@ const messagingSlice = createSlice({
       if (message) {
         message.is_read = action.payload.is_read;
         message.read_at = action.payload.read_at;
+      }
+    },
+    // WebSocket actions
+    websocketMessageReceived: (state, action) => {
+      const { event, data: messageData } = action.payload;
+      
+      if (event === 'message.created') {
+        // استخراج بيانات الرسالة (قد تكون في data أو message)
+        const message = messageData.message || messageData.data || messageData;
+        const threadId = message.thread_id || messageData.thread_id;
+        
+        if (!message.id || !threadId) return;
+        
+        // إضافة رسالة جديدة إلى المحادثة المفتوحة
+        const messageExists = state.messages.some(msg => msg.id === message.id);
+        if (!messageExists && threadId === state.currentThread?.id) {
+          state.messages.push(message);
+          state.messagesCount += 1;
+        }
+        
+        // تحديث last_message في جميع threads
+        state.threads.forEach(thread => {
+          if (thread.id === threadId) {
+            thread.last_message = message;
+            // إذا لم تكن المحادثة المفتوحة حالياً، زيادة unread_count
+            if (thread.id !== state.currentThread?.id) {
+              thread.unread_count = (thread.unread_count || 0) + 1;
+            }
+          }
+        });
+        
+        // تحديث totalUnreadCount
+        state.totalUnreadCount = state.threads.reduce((total, t) => {
+          return total + (t.unread_count || 0);
+        }, 0);
+      } else if (event === 'message.read') {
+        // استخراج بيانات القراءة
+        const messageId = messageData.message_id || messageData.id;
+        const threadId = messageData.thread_id;
+        const readAt = messageData.read_at;
+        
+        if (!messageId || !threadId) return;
+        
+        // تحديث حالة القراءة في الرسالة
+        const message = state.messages.find((m) => m.id === messageId);
+        if (message) {
+          message.is_read = true;
+          if (readAt) {
+            message.read_at = readAt;
+          }
+        }
+        
+        // تحديث unread_count في thread
+        const thread = state.threads.find(t => t.id === threadId);
+        if (thread && thread.unread_count > 0) {
+          thread.unread_count = Math.max(0, thread.unread_count - 1);
+        }
+        
+        // تحديث totalUnreadCount
+        state.totalUnreadCount = state.threads.reduce((total, t) => {
+          return total + (t.unread_count || 0);
+        }, 0);
+      } else if (event === 'thread.closed') {
+        // استخراج thread_id
+        const threadId = messageData.thread_id || messageData.id;
+        
+        if (!threadId) return;
+        
+        // تحديث حالة thread
+        const thread = state.threads.find(t => t.id === threadId);
+        if (thread) {
+          thread.is_closed = true;
+        }
+        if (state.currentThread?.id === threadId) {
+          state.currentThread.is_closed = true;
+        }
+      }
+    },
+    updateThreadLastMessage: (state, action) => {
+      const { threadId, message } = action.payload;
+      const thread = state.threads.find(t => t.id === threadId);
+      if (thread) {
+        thread.last_message = message;
+        thread.last_message.created_at = message.created_at;
       }
     },
   },
@@ -258,10 +359,36 @@ const messagingSlice = createSlice({
             }, 0);
           }
         }
+      })
+      // Create Thread
+      .addCase(createThread.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createThread.fulfilled, (state, action) => {
+        state.loading = false;
+        // إضافة thread جديد إلى القائمة
+        const threadExists = state.threads.some(t => t.id === action.payload.id);
+        if (!threadExists) {
+          state.threads.unshift(action.payload);
+        }
+        // تعيين thread الجديد كـ current thread
+        state.currentThread = action.payload;
+      })
+      .addCase(createThread.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
 
-export const { clearCurrentThread, clearError, addMessage, updateMessageReadStatus } = messagingSlice.actions;
+export const { 
+  clearCurrentThread, 
+  clearError, 
+  addMessage, 
+  updateMessageReadStatus,
+  websocketMessageReceived,
+  updateThreadLastMessage,
+} = messagingSlice.actions;
 export default messagingSlice.reducer;
 
