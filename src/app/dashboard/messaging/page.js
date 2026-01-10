@@ -11,9 +11,7 @@ import {
   markMessageAsRead,
   clearCurrentThread,
   websocketMessageReceived,
-  createThread,
 } from '@/store/slices/messagingSlice';
-import { fetchCases } from '@/store/slices/casesSlice';
 import wsManager from '@/lib/websocket';
 import {
   MagnifyingGlassIcon,
@@ -26,7 +24,6 @@ import {
   Bars3Icon,
   XMarkIcon,
   CheckCircleIcon,
-  PlusIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -35,7 +32,6 @@ export default function MessagingPage() {
   const { threads = [], currentThread, messages = [], messagesCursor, messagesCount, loading, sending } = useAppSelector(
     (state) => state.messaging
   );
-  const { cases = [] } = useAppSelector((state) => state.cases);
   const { user } = useAppSelector((state) => state.auth);
   
   const [selectedThreadId, setSelectedThreadId] = useState(null);
@@ -45,8 +41,6 @@ export default function MessagingPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [showThreadsList, setShowThreadsList] = useState(true);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [showNewThreadModal, setShowNewThreadModal] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState('');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(true);
@@ -71,12 +65,7 @@ export default function MessagingPage() {
         toast.error(errorMessage);
       }
     });
-    
-    // جلب الحالات المشرف عليها
-    if (user?.id && user?.university) {
-      dispatch(fetchCases());
-    }
-  }, [dispatch, showClosedThreads, user]);
+  }, [dispatch, showClosedThreads]);
 
   // تحديث تلقائي للمحادثات كل 30 ثانية (backup)
   // WebSocket سيحدث threads تلقائياً عند وصول رسائل جديدة
@@ -276,71 +265,6 @@ export default function MessagingPage() {
     }
   }, [selectedThreadId]);
 
-  // استخراج قائمة الطلاب المشرف عليهم من الحالات المشرف عليها
-  const supervisedStudents = React.useMemo(() => {
-    const studentsMap = new Map();
-    
-    // استخراج الطلاب من الحالات المشرف عليها
-    if (Array.isArray(cases)) {
-      cases.forEach(caseItem => {
-        // الحالات تحتوي على assigned_student (UUID أو object) أو student
-        let student = null;
-        
-        // محاولة استخراج الطالب من assigned_student
-        if (caseItem.assigned_student) {
-          if (typeof caseItem.assigned_student === 'object' && caseItem.assigned_student.id) {
-            // إذا كان object يحتوي على بيانات كاملة
-            student = caseItem.assigned_student;
-          } else if (typeof caseItem.assigned_student === 'string') {
-            // إذا كان UUID فقط، نحتاج بيانات إضافية
-            // قد يكون موجود في caseItem.student
-            student = caseItem.student || { id: caseItem.assigned_student };
-          }
-        }
-        
-        // إذا لم نجد في assigned_student، نبحث في student مباشرة
-        if (!student && caseItem.student) {
-          if (typeof caseItem.student === 'object' && caseItem.student.id) {
-            student = caseItem.student;
-          } else if (typeof caseItem.student === 'string') {
-            student = { id: caseItem.student };
-          }
-        }
-        
-        // إضافة الطالب إلى الخريطة إذا كان موجوداً وله id
-        if (student && student.id && !studentsMap.has(student.id)) {
-          // التأكد من وجود first_name و last_name أو استخدام قيم افتراضية
-          studentsMap.set(student.id, {
-            id: student.id,
-            first_name: student.first_name || 'طالب',
-            last_name: student.last_name || '',
-            ...student
-          });
-        }
-      });
-    }
-    
-    // إضافة الطلاب من threads أيضاً (للحالات التي لم تكن موجودة في cases)
-    threads.forEach(thread => {
-      if (thread.student && !studentsMap.has(thread.student.id)) {
-        studentsMap.set(thread.student.id, thread.student);
-      }
-    });
-    
-    return Array.from(studentsMap.values());
-  }, [cases, threads]);
-
-  // استخراج قائمة المواد من threads الحالية
-  const availableMaterials = React.useMemo(() => {
-    const materialsMap = new Map();
-    threads.forEach(thread => {
-      if (thread.material && !materialsMap.has(thread.material.id)) {
-        materialsMap.set(thread.material.id, thread.material);
-      }
-    });
-    return Array.from(materialsMap.values());
-  }, [threads]);
-
   const filteredThreads = threads.filter((thread) => {
     const matchesSearch =
       thread.material?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -348,38 +272,6 @@ export default function MessagingPage() {
       thread.student?.last_name?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
-
-  // إنشاء محادثة جديدة
-  const handleCreateThread = async () => {
-    if (!selectedStudentId) {
-      toast.error('يرجى اختيار الطالب');
-      return;
-    }
-
-    try {
-      const result = await dispatch(createThread({
-        student_id: selectedStudentId,
-      }));
-
-      if (createThread.fulfilled.match(result)) {
-        toast.success('تم إنشاء المحادثة بنجاح');
-        setShowNewThreadModal(false);
-        setSelectedStudentId('');
-        // فتح المحادثة الجديدة
-        setSelectedThreadId(result.payload.id);
-        // تحديث قائمة threads
-        dispatch(fetchThreads({ is_closed: showClosedThreads ? null : false }));
-      } else {
-        const errorMessage = result.payload?.message || 
-                           result.payload?.error || 
-                           result.payload?.detail ||
-                           'فشل إنشاء المحادثة';
-        toast.error(errorMessage);
-      }
-    } catch (error) {
-      toast.error('حدث خطأ أثناء إنشاء المحادثة');
-    }
-  };
 
   const handleSendMessage = async () => {
     if (!selectedThreadId || !messageContent.trim()) {
@@ -474,15 +366,6 @@ export default function MessagingPage() {
               المراسلة
             </h2>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowNewThreadModal(true)}
-                className="flex items-center gap-2 rounded-lg bg-sky-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors"
-                style={{ fontFamily: 'inherit' }}
-                title="محادثة جديدة"
-              >
-                <PlusIcon className="h-5 w-5" />
-                <span className="hidden sm:inline">جديدة</span>
-              </button>
               <button
                 onClick={() => setShowThreadsList(false)}
                 className="md:hidden p-2 rounded-lg hover:bg-sky-100 text-dark-lighter"
@@ -856,79 +739,6 @@ export default function MessagingPage() {
           </div>
         )}
       </div>
-
-      {/* Modal إنشاء محادثة جديدة */}
-      {showNewThreadModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-dark" style={{ fontFamily: 'inherit' }}>
-                  محادثة جديدة
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowNewThreadModal(false);
-                    setSelectedStudentId('');
-                  }}
-                  className="p-2 rounded-lg hover:bg-sky-100 text-dark-lighter"
-                >
-                  <XMarkIcon className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* اختيار الطالب */}
-                <div>
-                  <label className="block text-sm font-medium text-dark mb-2" style={{ fontFamily: 'inherit' }}>
-                    الطالب
-                  </label>
-                  <select
-                    value={selectedStudentId}
-                    onChange={(e) => setSelectedStudentId(e.target.value)}
-                    className="w-full rounded-lg border-2 border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-dark focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all duration-200"
-                    style={{ fontFamily: 'inherit' }}
-                  >
-                    <option value="">اختر الطالب</option>
-                    {supervisedStudents.map((student) => (
-                      <option key={student.id} value={student.id}>
-                        {student.first_name} {student.last_name}
-                      </option>
-                    ))}
-                  </select>
-                  {supervisedStudents.length === 0 && (
-                    <p className="mt-1 text-xs text-dark-lighter" style={{ fontFamily: 'inherit' }}>
-                      لا يوجد طلاب مشرف عليهم حالياً
-                    </p>
-                  )}
-                </div>
-
-                {/* أزرار */}
-                <div className="flex items-center justify-end gap-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setShowNewThreadModal(false);
-                      setSelectedStudentId('');
-                    }}
-                    className="px-4 py-2 rounded-lg text-sm font-semibold text-dark hover:bg-sky-50 transition-colors"
-                    style={{ fontFamily: 'inherit' }}
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    onClick={handleCreateThread}
-                    disabled={loading || !selectedStudentId}
-                    className="px-4 py-2 rounded-lg bg-sky-500 text-sm font-semibold text-white hover:bg-sky-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ fontFamily: 'inherit' }}
-                  >
-                    {loading ? 'جاري الإنشاء...' : 'إنشاء المحادثة'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

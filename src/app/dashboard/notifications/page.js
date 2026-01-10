@@ -10,6 +10,7 @@ import {
   updateNotificationStatus,
   markAllAsRead,
   clearCurrentNotification,
+  websocketNotificationReceived,
 } from '@/store/slices/notificationsSlice';
 import {
   BellIcon,
@@ -23,6 +24,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 const priorityLabels = {
   low: 'منخفضة',
@@ -66,7 +68,7 @@ const getNotificationIcon = (notificationType) => {
 export default function NotificationsPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { notifications = [], loading, unreadCount, currentNotification } = useAppSelector(
+  const { notifications = [], loading, unreadCount, currentNotification, pagination } = useAppSelector(
     (state) => state.notifications
   );
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,7 +83,70 @@ export default function NotificationsPage() {
   });
 
   useEffect(() => {
-    dispatch(fetchNotifications());
+    dispatch(fetchNotifications({ page_size: 20 }));
+  }, [dispatch]);
+
+  // تحديث تلقائي للإشعارات كل 30 ثانية (backup)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      dispatch(fetchNotifications({ page_size: 20 })).catch((error) => {
+        // لا نعرض toast للأخطاء في polling (لتجنب الإزعاج)
+        console.error('Failed to refresh notifications:', error);
+      });
+    }, 30000); // 30 ثانية
+
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
+  // WebSocket connection للإشعارات
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+
+    const apiURL = process.env.NEXT_PUBLIC_API_URL || 'https://medismile1-production.up.railway.app/api';
+    const wsURL = apiURL.replace(/^https?/, apiURL.startsWith('https') ? 'wss' : 'ws').replace(/\/api$/, '');
+    const ws = new WebSocket(`${wsURL}/ws/notifications/?token=${encodeURIComponent(token)}`);
+
+    ws.onopen = () => {
+      console.log('WebSocket connected for notifications');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        // معالجة أنواع الأحداث المختلفة
+        if (data.event) {
+          dispatch(websocketNotificationReceived({
+            event: data.event,
+            data: data.data || data,
+          }));
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error for notifications:', error);
+    };
+
+    ws.onclose = (event) => {
+      console.log('WebSocket closed for notifications:', event.code, event.reason);
+      // إعادة الاتصال بعد 5 ثوانٍ
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && localStorage.getItem('access_token')) {
+          // سيتم إعادة الاتصال تلقائياً عند تحميل الصفحة مرة أخرى
+        }
+      }, 5000);
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close(1000, 'Component unmounting');
+      }
+    };
   }, [dispatch]);
 
   useEffect(() => {
@@ -492,6 +557,75 @@ export default function NotificationsPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pagination && (pagination.next || pagination.previous) && (
+          <div className="flex items-center justify-between px-5 py-4 border-t border-sky-100 bg-sky-50">
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-dark-lighter" style={{ fontFamily: 'inherit' }}>
+                إجمالي: {pagination.count || notifications.length} إشعار
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  if (pagination.previous) {
+                    try {
+                      // استخدام URL الكامل إذا كان متاحاً
+                      const url = new URL(pagination.previous);
+                      const page = url.searchParams.get('page');
+                      const cursor = url.searchParams.get('cursor');
+                      
+                      if (cursor) {
+                        await dispatch(fetchNotifications({ cursor, page_size: 20 }));
+                      } else if (page) {
+                        await dispatch(fetchNotifications({ page, page_size: 20 }));
+                      } else {
+                        // استخدام URL الكامل كـ query parameter
+                        await dispatch(fetchNotifications({ previous: pagination.previous, page_size: 20 }));
+                      }
+                    } catch (error) {
+                      toast.error('فشل تحميل الصفحة السابقة');
+                    }
+                  }
+                }}
+                disabled={!pagination.previous || loading}
+                className="flex items-center gap-2 rounded-lg border-2 border-sky-200 bg-white px-3 py-2 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+              >
+                <ChevronRightIcon className="h-4 w-4" />
+                السابق
+              </button>
+              <button
+                onClick={async () => {
+                  if (pagination.next) {
+                    try {
+                      // استخدام URL الكامل إذا كان متاحاً
+                      const url = new URL(pagination.next);
+                      const page = url.searchParams.get('page');
+                      const cursor = url.searchParams.get('cursor');
+                      
+                      if (cursor) {
+                        await dispatch(fetchNotifications({ cursor, page_size: 20 }));
+                      } else if (page) {
+                        await dispatch(fetchNotifications({ page, page_size: 20 }));
+                      } else {
+                        // استخدام URL الكامل كـ query parameter
+                        await dispatch(fetchNotifications({ next: pagination.next, page_size: 20 }));
+                      }
+                    } catch (error) {
+                      toast.error('فشل تحميل الصفحة التالية');
+                    }
+                  }
+                }}
+                disabled={!pagination.next || loading}
+                className="flex items-center gap-2 rounded-lg border-2 border-sky-200 bg-white px-3 py-2 text-sm font-semibold text-dark hover:bg-sky-50 hover:border-sky-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+              >
+                التالي
+                <ChevronLeftIcon className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>

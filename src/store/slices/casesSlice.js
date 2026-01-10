@@ -122,9 +122,24 @@ export const updateCase = createAsyncThunk(
       
       // تحديث الحالة
       const response = await api.patch(`/cases/${caseId}/`, data);
-      return response.data.data;
+      
+      // معالجة response بشكل أفضل
+      if (response.data) {
+        // إذا كان response يحتوي على data property
+        if (response.data.data) {
+          return response.data.data;
+        }
+        // إذا كان response نفسه هو البيانات (يحتوي على id أو title)
+        if (response.data.id || response.data.title) {
+          return response.data;
+        }
+      }
+      // إذا لم يكن هناك data، نعيد response نفسه
+      return response.data || response;
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
+      // معالجة أفضل للأخطاء
+      const errorData = error.response?.data || error.message || 'حدث خطأ أثناء تحديث الحالة';
+      return rejectWithValue(errorData);
     }
   }
 );
@@ -184,9 +199,23 @@ export const updateCaseStatus = createAsyncThunk(
       const response = await api.patch(`/cases/${caseId}/status/`, {
         status,
       });
-      return response.data.data || response.data;
+      // معالجة response بشكل أفضل
+      if (response.data) {
+        // إذا كان response يحتوي على data property
+        if (response.data.data) {
+          return response.data.data;
+        }
+        // إذا كان response نفسه هو البيانات
+        if (response.data.id || response.data.status) {
+          return response.data;
+        }
+      }
+      // إذا لم يكن هناك data، نعيد response نفسه
+      return response.data || response;
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
+      // معالجة أفضل للأخطاء
+      const errorData = error.response?.data || error.message || 'حدث خطأ أثناء تحديث الحالة';
+      return rejectWithValue(errorData);
     }
   }
 );
@@ -206,23 +235,10 @@ export const assignSupervisor = createAsyncThunk(
   }
 );
 
-export const fetchCaseHistory = createAsyncThunk(
-  'cases/fetchCaseHistory',
-  async (caseId, { rejectWithValue }) => {
-    try {
-      const response = await api.get(`/cases/${caseId}/history/`);
-      return response.data.data || response.data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
-    }
-  }
-);
-
 const initialState = {
   cases: [],
   currentCase: null,
   assignmentRequests: [],
-  caseHistory: [],
   loading: false,
   error: null,
   filters: {
@@ -355,19 +371,6 @@ const casesSlice = createSlice({
           state.currentCase = action.payload;
         }
       })
-      // Fetch Case History
-      .addCase(fetchCaseHistory.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchCaseHistory.fulfilled, (state, action) => {
-        state.loading = false;
-        state.caseHistory = action.payload;
-      })
-      .addCase(fetchCaseHistory.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
   },
 });
 

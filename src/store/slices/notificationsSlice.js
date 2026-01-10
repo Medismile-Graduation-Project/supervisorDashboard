@@ -99,6 +99,70 @@ const notificationsSlice = createSlice({
     decrementUnreadCount: (state) => {
       state.unreadCount = Math.max(0, state.unreadCount - 1);
     },
+    // WebSocket actions
+    websocketNotificationReceived: (state, action) => {
+      const { event, data: notificationData } = action.payload;
+      
+      if (event === 'notification.created') {
+        const notification = notificationData.notification || notificationData.data || notificationData;
+        
+        if (!notification.id) return;
+        
+        // التحقق من عدم وجود الإشعار مسبقاً
+        const notificationExists = state.notifications.some(n => n.id === notification.id);
+        if (!notificationExists) {
+          // إضافة الإشعار في البداية (الأحدث أولاً)
+          state.notifications.unshift(notification);
+          // زيادة unreadCount إذا لم يكن مقروءاً
+          if (!notification.is_read) {
+            state.unreadCount += 1;
+          }
+        }
+      } else if (event === 'notification.updated') {
+        const notification = notificationData.notification || notificationData.data || notificationData;
+        
+        if (!notification.id) return;
+        
+        // تحديث الإشعار في القائمة
+        const index = state.notifications.findIndex(n => n.id === notification.id);
+        if (index !== -1) {
+          const wasUnread = !state.notifications[index].is_read;
+          state.notifications[index] = notification;
+          
+          // تحديث unreadCount
+          if (wasUnread && notification.is_read) {
+            state.unreadCount = Math.max(0, state.unreadCount - 1);
+          } else if (!wasUnread && !notification.is_read) {
+            state.unreadCount += 1;
+          }
+        }
+        
+        // تحديث currentNotification إذا كان نفسه
+        if (state.currentNotification?.id === notification.id) {
+          state.currentNotification = notification;
+        }
+      } else if (event === 'notification.deleted') {
+        const notificationId = notificationData.notification_id || notificationData.id;
+        
+        if (!notificationId) return;
+        
+        // إزالة الإشعار من القائمة
+        const index = state.notifications.findIndex(n => n.id === notificationId);
+        if (index !== -1) {
+          const notification = state.notifications[index];
+          // تقليل unreadCount إذا لم يكن مقروءاً
+          if (!notification.is_read) {
+            state.unreadCount = Math.max(0, state.unreadCount - 1);
+          }
+          state.notifications.splice(index, 1);
+        }
+        
+        // تنظيف currentNotification إذا كان نفسه
+        if (state.currentNotification?.id === notificationId) {
+          state.currentNotification = null;
+        }
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -117,11 +181,19 @@ const notificationsSlice = createSlice({
             next: action.payload.next,
             previous: action.payload.previous,
           };
+        } else if (action.payload.count !== undefined) {
+          // إذا كانت paginated ولكن results في مكان آخر
+          state.notifications = action.payload.results || action.payload.data || [];
+          state.pagination = {
+            count: action.payload.count || 0,
+            next: action.payload.next || null,
+            previous: action.payload.previous || null,
+          };
         } else {
           // إذا كانت قائمة عادية
           state.notifications = Array.isArray(action.payload) ? action.payload : [];
         }
-        // حساب عدد غير المقروء
+        // حساب عدد غير المقروء من جميع الإشعارات
         state.unreadCount = state.notifications.filter((n) => !n.is_read).length;
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
@@ -182,5 +254,6 @@ export const {
   clearError,
   incrementUnreadCount,
   decrementUnreadCount,
+  websocketNotificationReceived,
 } = notificationsSlice.actions;
 export default notificationsSlice.reducer;

@@ -7,7 +7,6 @@ import { useAppSelector } from '@/hooks/useAppSelector';
 import {
   fetchCaseById,
   updateCase,
-  fetchCaseHistory,
   supervisorDecision,
   updateCaseStatus,
   assignSupervisor,
@@ -61,7 +60,7 @@ export default function CaseDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { currentCase, loading, caseHistory } = useAppSelector((state) => state.cases);
+  const { currentCase, loading } = useAppSelector((state) => state.cases);
   const { sessions, currentSession } = useAppSelector((state) => state.sessions);
 
   const [activeTab, setActiveTab] = useState('details');
@@ -86,7 +85,6 @@ export default function CaseDetailsPage() {
     if (params.id) {
       dispatch(fetchCaseById(params.id));
       dispatch(fetchSessions({ caseId: params.id }));
-      dispatch(fetchCaseHistory(params.id));
     }
   }, [params.id, dispatch]);
 
@@ -107,14 +105,25 @@ export default function CaseDetailsPage() {
       const result = await dispatch(
         updateCase({ caseId: params.id, data: editForm })
       );
+      // التحقق من أن العملية نجحت
       if (updateCase.fulfilled.match(result)) {
         toast.success('تم تحديث الحالة بنجاح');
         setIsEditing(false);
+        // تحديث البيانات من API
         dispatch(fetchCaseById(params.id));
-      } else {
-        toast.error(result.payload?.message || 'فشل تحديث الحالة');
+      } else if (updateCase.rejected.match(result)) {
+        // معالجة الخطأ بشكل أفضل
+        const errorPayload = result.payload;
+        const errorMessage = errorPayload?.detail || 
+                           errorPayload?.message || 
+                           errorPayload?.error ||
+                           errorPayload?.status ||
+                           (typeof errorPayload === 'string' ? errorPayload : 'فشل تحديث الحالة');
+        toast.error(errorMessage);
       }
     } catch (error) {
+      // معالجة الأخطاء غير المتوقعة
+      console.error('Error updating case:', error);
       toast.error('حدث خطأ أثناء تحديث الحالة');
     }
   };
@@ -164,18 +173,26 @@ export default function CaseDetailsPage() {
       const result = await dispatch(
         updateCaseStatus({ caseId: params.id, status })
       );
+      
+      // التحقق من أن العملية نجحت
       if (updateCaseStatus.fulfilled.match(result)) {
         toast.success('تم تحديث حالة الحالة بنجاح');
         dispatch(fetchCaseById(params.id));
         setShowStatusModal(false);
-      } else {
-        const errorMessage = result.payload?.detail || 
-                           result.payload?.message || 
-                           result.payload?.error ||
-                           'فشل تحديث حالة الحالة';
+        setNewStatus('');
+      } else if (updateCaseStatus.rejected.match(result)) {
+        // معالجة الخطأ بشكل أفضل
+        const errorPayload = result.payload;
+        const errorMessage = errorPayload?.detail || 
+                           errorPayload?.message || 
+                           errorPayload?.error ||
+                           errorPayload?.status ||
+                           (typeof errorPayload === 'string' ? errorPayload : 'فشل تحديث حالة الحالة');
         toast.error(errorMessage);
       }
     } catch (error) {
+      // معالجة الأخطاء غير المتوقعة
+      console.error('Error updating case status:', error);
       toast.error('حدث خطأ أثناء تحديث حالة الحالة');
     }
   };
@@ -196,7 +213,6 @@ export default function CaseDetailsPage() {
         setShowSupervisorDecisionModal(false);
         setSupervisorDecisionNote('');
         dispatch(fetchCaseById(params.id));
-        dispatch(fetchCaseHistory(params.id));
       } else {
         const errorMessage = result.payload?.detail || 
                              result.payload?.message || 
@@ -314,7 +330,6 @@ export default function CaseDetailsPage() {
           {[
             { id: 'details', label: 'التفاصيل' },
             { id: 'sessions', label: 'الجلسات', badge: sessionsNeedingReview.length },
-            { id: 'history', label: 'السجل' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -658,48 +673,6 @@ export default function CaseDetailsPage() {
                           مراجعة
                         </button>
                       )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'history' && (
-          <div className="rounded-lg bg-white border border-sky-100 overflow-hidden shadow-sm">
-            {!caseHistory || caseHistory.length === 0 ? (
-              <div className="p-12 text-center">
-                <p className="text-base font-semibold text-dark" style={{ fontFamily: 'inherit' }}>
-                  لا يوجد سجل
-                </p>
-                <p className="mt-2 text-sm text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
-                  لا يوجد سجل أنشطة لهذه الحالة
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-sky-100">
-                {Array.isArray(caseHistory) && caseHistory.map((item, index) => (
-                  <div key={item.id || index} className="p-5 sm:p-6 hover:bg-sky-50 transition-colors">
-                    <div className="flex items-start gap-4">
-                      <div className="shrink-0 mt-1.5">
-                        <div className="h-2.5 w-2.5 rounded-full bg-sky-500"></div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm sm:text-base font-semibold text-dark leading-relaxed mb-2" style={{ fontFamily: 'inherit' }}>
-                          {item.description || item.action || 'حدث'}
-                        </p>
-                        <p className="text-xs text-dark-lighter leading-relaxed" style={{ fontFamily: 'inherit' }}>
-                          {item.performed_by?.first_name || item.user?.first_name || ''} {item.performed_by?.last_name || item.user?.last_name || ''} -{' '}
-                          {new Date(item.created_at || item.timestamp).toLocaleDateString('ar-SA', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
                     </div>
                   </div>
                 ))}

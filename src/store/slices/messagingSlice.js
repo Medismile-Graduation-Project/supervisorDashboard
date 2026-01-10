@@ -85,23 +85,6 @@ export const markMessageAsRead = createAsyncThunk(
   }
 );
 
-export const createThread = createAsyncThunk(
-  'messaging/createThread',
-  async ({ student_id }, { rejectWithValue }) => {
-    try {
-      const payload = {
-        thread_type: 'material',
-        // material_id اختياري - يمكن أن يكون null أو سيتم إنشاؤه تلقائياً
-      };
-      
-      const response = await api.post('/messaging/threads/', payload);
-      return response.data.data || response.data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
-    }
-  }
-);
-
 const initialState = {
   threads: [],
   currentThread: null,
@@ -359,25 +342,6 @@ const messagingSlice = createSlice({
             }, 0);
           }
         }
-      })
-      // Create Thread
-      .addCase(createThread.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(createThread.fulfilled, (state, action) => {
-        state.loading = false;
-        // إضافة thread جديد إلى القائمة
-        const threadExists = state.threads.some(t => t.id === action.payload.id);
-        if (!threadExists) {
-          state.threads.unshift(action.payload);
-        }
-        // تعيين thread الجديد كـ current thread
-        state.currentThread = action.payload;
-      })
-      .addCase(createThread.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
       });
   },
 });
