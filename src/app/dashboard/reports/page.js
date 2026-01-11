@@ -19,6 +19,9 @@ import {
   PaperAirplaneIcon,
   PlusIcon,
   PencilIcon,
+  PhotoIcon,
+  StarIcon,
+  LinkIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -732,20 +735,202 @@ export default function ReportsPage() {
                 </div>
               )}
 
-              {currentReport.created_at && (
-                <div>
-                  <label className="block text-sm font-semibold text-dark mb-2">تاريخ الإنشاء</label>
-                  <p className="text-sm text-dark leading-relaxed">
-                    {new Date(currentReport.created_at).toLocaleDateString('ar-SA', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+              {/* Author, Student, Supervisor Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-sky-100">
+                {currentReport.author_name && (
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2">المؤلف</label>
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                      <p className="text-sm text-dark">{currentReport.author_name}</p>
+                    </div>
+                  </div>
+                )}
+                {currentReport.student_name && (
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2">الطالب</label>
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                      <p className="text-sm text-dark">{currentReport.student_name}</p>
+                    </div>
+                  </div>
+                )}
+                {currentReport.supervisor_name && (
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2">المشرف</label>
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                      <p className="text-sm text-dark">{currentReport.supervisor_name}</p>
+                    </div>
+                  </div>
+                )}
+                {currentReport.approved_by_name && (
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2">الموافق عليه بواسطة</label>
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <p className="text-sm text-dark">{currentReport.approved_by_name}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Content (Diagnosis, Sessions) */}
+              {currentReport.content && (
+                <div className="pt-4 border-t border-sky-100">
+                  <label className="block text-sm font-semibold text-dark mb-3">محتوى التقرير</label>
+                  <div className="space-y-3">
+                    {currentReport.content.diagnosis && (
+                      <div>
+                        <label className="block text-xs font-semibold text-dark-lighter mb-1">التشخيص</label>
+                        <p className="text-sm text-dark whitespace-pre-wrap leading-relaxed bg-sky-50 p-3 rounded-lg">
+                          {currentReport.content.diagnosis}
+                        </p>
+                      </div>
+                    )}
+                    {currentReport.content.sessions && Array.isArray(currentReport.content.sessions) && currentReport.content.sessions.length > 0 && (
+                      <div>
+                        <label className="block text-xs font-semibold text-dark-lighter mb-1">الجلسات</label>
+                        <div className="space-y-2">
+                          {currentReport.content.sessions.map((session, index) => (
+                            <div key={index} className="bg-sky-50 p-3 rounded-lg">
+                              <p className="text-sm text-dark">{JSON.stringify(session, null, 2)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Score, Feedback, Review Notes */}
+              {(currentReport.score !== null && currentReport.score !== undefined) && (
+                <div className="pt-4 border-t border-sky-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <StarIcon className="h-5 w-5 text-yellow-500" />
+                    <label className="block text-sm font-semibold text-dark">النتيجة</label>
+                  </div>
+                  <div className="bg-yellow-50 p-3 rounded-lg">
+                    <p className="text-lg font-bold text-dark">{currentReport.score}/100</p>
+                  </div>
+                </div>
+              )}
+
+              {currentReport.feedback && (
+                <div className="pt-4 border-t border-sky-100">
+                  <label className="block text-sm font-semibold text-dark mb-2">التعليقات</label>
+                  <p className="text-sm text-dark whitespace-pre-wrap leading-relaxed bg-sky-50 p-3 rounded-lg">
+                    {currentReport.feedback}
                   </p>
                 </div>
               )}
+
+              {currentReport.review_notes && (
+                <div className="pt-4 border-t border-sky-100">
+                  <label className="block text-sm font-semibold text-dark mb-2">ملاحظات المراجعة</label>
+                  <p className="text-sm text-dark whitespace-pre-wrap leading-relaxed bg-green-50 p-3 rounded-lg">
+                    {currentReport.review_notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Attachments */}
+              {currentReport.attachments && Array.isArray(currentReport.attachments) && currentReport.attachments.length > 0 && (
+                <div className="pt-4 border-t border-sky-100">
+                  <label className="block text-sm font-semibold text-dark mb-3">المرفقات</label>
+                  <div className="space-y-2">
+                    {currentReport.attachments.map((attachment, index) => (
+                      <a
+                        key={index}
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors"
+                      >
+                        <PhotoIcon className="h-5 w-5 text-sky-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-dark truncate">{attachment.type || `مرفق ${index + 1}`}</p>
+                          <p className="text-xs text-dark-lighter truncate">{attachment.url}</p>
+                        </div>
+                        <LinkIcon className="h-4 w-4 text-sky-600 flex-shrink-0" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Dates */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-sky-100">
+                {currentReport.created_at && (
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2">تاريخ الإنشاء</label>
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                      <p className="text-sm text-dark">
+                        {new Date(currentReport.created_at).toLocaleDateString('ar-SA', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {currentReport.submitted_at && (
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2">تاريخ التقديم</label>
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                      <p className="text-sm text-dark">
+                        {new Date(currentReport.submitted_at).toLocaleDateString('ar-SA', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {currentReport.approved_at && (
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2">تاريخ الموافقة</label>
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <p className="text-sm text-dark">
+                        {new Date(currentReport.approved_at).toLocaleDateString('ar-SA', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {currentReport.locked_at && (
+                  <div>
+                    <label className="block text-sm font-semibold text-dark mb-2">تاريخ الإقفال</label>
+                    <div className="flex items-center gap-2">
+                      <ClockIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                      <p className="text-sm text-dark">
+                        {new Date(currentReport.locked_at).toLocaleDateString('ar-SA', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {currentReport.file_url && (
                 <div>

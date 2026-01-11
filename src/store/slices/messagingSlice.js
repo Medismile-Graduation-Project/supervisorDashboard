@@ -6,10 +6,9 @@ export const fetchThreads = createAsyncThunk(
   'messaging/fetchThreads',
   async (params = {}, { rejectWithValue }) => {
     try {
-      // للمشرف: thread_type يجب أن يكون 'material' فقط
+      // إزالة فرض thread_type (API يجيب thread_type: 'case')
       const filteredParams = {
         ...params,
-        thread_type: 'material', // إلزامي للمشرف
       };
       
       const response = await api.get('/messaging/threads/', { params: filteredParams });

@@ -12,12 +12,13 @@ import {
   clearCurrentThread,
   websocketMessageReceived,
 } from '@/store/slices/messagingSlice';
+import { fetchCaseById } from '@/store/slices/casesSlice';
 import wsManager from '@/lib/websocket';
 import {
   MagnifyingGlassIcon,
   PaperAirplaneIcon,
   UserIcon,
-  AcademicCapIcon,
+  FolderIcon,
   ClockIcon,
   CheckIcon,
   ChatBubbleLeftRightIcon,
@@ -33,6 +34,7 @@ export default function MessagingPage() {
     (state) => state.messaging
   );
   const { user } = useAppSelector((state) => state.auth);
+  const [casesData, setCasesData] = useState({}); // لتخزين بيانات الحالات
   
   const [selectedThreadId, setSelectedThreadId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,6 +68,77 @@ export default function MessagingPage() {
       }
     });
   }, [dispatch, showClosedThreads]);
+
+  // جلب بيانات الحالات لكل thread
+  useEffect(() => {
+    const fetchCasesForThreads = async () => {
+      if (!Array.isArray(threads) || threads.length === 0) {
+        return;
+      }
+
+      // جمع جميع case IDs الفريدة من threads
+      const caseIds = new Set();
+      threads.forEach((thread) => {
+        if (thread.thread_type === 'case' && (thread.case_id || thread.case)) {
+          const caseId = thread.case_id || thread.case;
+          caseIds.add(caseId);
+        }
+      });
+
+      // جلب بيانات الحالات التي لم يتم جلبها بعد
+      const fetchedCases = {};
+      await Promise.all(
+        Array.from(caseIds).map(async (caseId) => {
+          // التحقق من أن الحالة لم يتم جلبها بالفعل
+          if (casesData[caseId]) {
+            return;
+          }
+          try {
+            const result = await dispatch(fetchCaseById(caseId));
+            if (fetchCaseById.fulfilled.match(result)) {
+              fetchedCases[caseId] = result.payload;
+            }
+          } catch (error) {
+            console.error(`Error fetching case ${caseId}:`, error);
+          }
+        })
+      );
+
+      // تحديث casesData
+      if (Object.keys(fetchedCases).length > 0) {
+        setCasesData((prev) => ({ ...prev, ...fetchedCases }));
+      }
+    };
+
+    fetchCasesForThreads();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threads, dispatch]);
+
+  // جلب بيانات الحالة للـ currentThread
+  useEffect(() => {
+    const fetchCaseForCurrentThread = async () => {
+      if (!currentThread || currentThread.thread_type !== 'case') {
+        return;
+      }
+
+      const caseId = currentThread.case_id || currentThread.case;
+      if (!caseId || casesData[caseId]) {
+        return;
+      }
+
+      try {
+        const result = await dispatch(fetchCaseById(caseId));
+        if (fetchCaseById.fulfilled.match(result)) {
+          setCasesData((prev) => ({ ...prev, [caseId]: result.payload }));
+        }
+      } catch (error) {
+        console.error(`Error fetching case ${caseId}:`, error);
+      }
+    };
+
+    fetchCaseForCurrentThread();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentThread, dispatch]);
 
   // تحديث تلقائي للمحادثات كل 30 ثانية (backup)
   // WebSocket سيحدث threads تلقائياً عند وصول رسائل جديدة
@@ -266,12 +339,59 @@ export default function MessagingPage() {
   }, [selectedThreadId]);
 
   const filteredThreads = threads.filter((thread) => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const caseId = thread.case_id || thread.case;
+    const caseData = caseId ? casesData[caseId] : null;
+    
     const matchesSearch =
-      thread.material?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      thread.student?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      thread.student?.last_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      thread.case_id?.toLowerCase().includes(searchLower) ||
+      caseData?.title?.toLowerCase().includes(searchLower) ||
+      thread.participant_student?.first_name?.toLowerCase().includes(searchLower) ||
+      thread.participant_student?.last_name?.toLowerCase().includes(searchLower) ||
+      thread.participant_patient?.first_name?.toLowerCase().includes(searchLower) ||
+      thread.participant_patient?.last_name?.toLowerCase().includes(searchLower);
     return matchesSearch;
   });
+
+  // التحقق من صلاحيات الإرسال
+  const canSendMessage = (thread) => {
+    if (!thread || thread.is_closed) return false;
+    if (!user?.id) return false;
+
+    // Case threads: يمكن لـ patient و assigned_student الإرسال
+    // المشرف viewer فقط (لا يمكنه الإرسال)
+    if (thread.thread_type === 'case') {
+      // التحقق إذا كان المستخدم هو participant_patient
+      if (thread.participant_patient?.id === user.id) {
+        return true;
+      }
+      // التحقق إذا كان المستخدم هو participant_student
+      if (thread.participant_student?.id === user.id) {
+        return true;
+      }
+      // المشرف viewer فقط (لا يمكنه الإرسال)
+      return false;
+    }
+
+    // Course threads: يمكن للـ enrolled_student و course_supervisor الإرسال
+    if (thread.thread_type === 'course') {
+      // التحقق إذا كان المستخدم هو participant_supervisor
+      if (thread.participant_supervisor?.id === user.id) {
+        return true;
+      }
+      // التحقق إذا كان المستخدم هو participant_student
+      if (thread.participant_student?.id === user.id) {
+        return true;
+      }
+      return false;
+    }
+
+    return false;
+  };
+
+  const canSendInCurrentThread = currentThread ? canSendMessage(currentThread) : false;
 
   const handleSendMessage = async () => {
     if (!selectedThreadId || !messageContent.trim()) {
@@ -281,6 +401,16 @@ export default function MessagingPage() {
 
     if (currentThread?.is_closed) {
       toast.error('لا يمكن إرسال رسالة في محادثة مغلقة');
+      return;
+    }
+
+    // التحقق من صلاحيات الإرسال
+    if (!canSendMessage(currentThread)) {
+      if (currentThread?.thread_type === 'case') {
+        toast.error('أنت viewer فقط في هذه المحادثة - لا يمكنك الإرسال');
+      } else {
+        toast.error('ليس لديك صلاحية للإرسال في هذه المحادثة');
+      }
       return;
     }
 
@@ -433,17 +563,33 @@ export default function MessagingPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5">
-                          <AcademicCapIcon className="h-4 w-4 text-sky-500 shrink-0" />
+                          <FolderIcon className="h-4 w-4 text-sky-500 shrink-0" />
                           <p className="text-sm font-semibold text-dark truncate" style={{ fontFamily: 'inherit' }}>
-                            {thread.material?.title || 'مادة دراسية'}
+                            {thread.thread_type === 'case' && (thread.case_id || thread.case)
+                              ? (() => {
+                                  const caseId = thread.case_id || thread.case;
+                                  const caseData = casesData[caseId];
+                                  return caseData?.title || 'جاري التحميل...';
+                                })()
+                              : 'محادثة'}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <UserIcon className="h-4 w-4 text-dark-lighter shrink-0" />
-                          <p className="text-xs text-dark-lighter truncate" style={{ fontFamily: 'inherit' }}>
-                            {thread.student?.first_name} {thread.student?.last_name}
-                          </p>
-                        </div>
+                        {thread.participant_student && (
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <UserIcon className="h-4 w-4 text-dark-lighter shrink-0" />
+                            <p className="text-xs text-dark-lighter truncate" style={{ fontFamily: 'inherit' }}>
+                              الطالب: {thread.participant_student.first_name} {thread.participant_student.last_name}
+                            </p>
+                          </div>
+                        )}
+                        {thread.participant_patient && (
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <UserIcon className="h-4 w-4 text-dark-lighter shrink-0" />
+                            <p className="text-xs text-dark-lighter truncate" style={{ fontFamily: 'inherit' }}>
+                              المريض: {thread.participant_patient.first_name} {thread.participant_patient.last_name}
+                            </p>
+                          </div>
+                        )}
                         {thread.last_message && (
                           <p className="text-xs text-dark-lighter line-clamp-2 mt-1.5 leading-relaxed" style={{ fontFamily: 'inherit' }}>
                             {thread.last_message.content}
@@ -497,9 +643,15 @@ export default function MessagingPage() {
                 {currentThread ? (
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <AcademicCapIcon className="h-5 w-5 text-sky-500 shrink-0" />
+                      <FolderIcon className="h-5 w-5 text-sky-500 shrink-0" />
                       <h3 className="text-base sm:text-lg font-semibold text-dark truncate" style={{ fontFamily: 'inherit' }}>
-                        {currentThread.material?.title || 'مادة دراسية'}
+                        {currentThread.thread_type === 'case' && (currentThread.case_id || currentThread.case)
+                          ? (() => {
+                              const caseId = currentThread.case_id || currentThread.case;
+                              const caseData = casesData[caseId];
+                              return caseData?.title || 'جاري التحميل...';
+                            })()
+                          : 'محادثة'}
                       </h3>
                       {currentThread.is_closed && (
                         <span className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded whitespace-nowrap" style={{ fontFamily: 'inherit' }}>
@@ -508,12 +660,22 @@ export default function MessagingPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-dark-lighter flex-wrap">
-                      <div className="flex items-center gap-1">
-                        <UserIcon className="h-4 w-4 shrink-0" />
-                        <span className="truncate" style={{ fontFamily: 'inherit' }}>
-                          {currentThread.student?.first_name} {currentThread.student?.last_name}
-                        </span>
-                      </div>
+                      {currentThread.participant_student && (
+                        <div className="flex items-center gap-1">
+                          <UserIcon className="h-4 w-4 shrink-0" />
+                          <span className="truncate" style={{ fontFamily: 'inherit' }}>
+                            الطالب: {currentThread.participant_student.first_name} {currentThread.participant_student.last_name}
+                          </span>
+                        </div>
+                      )}
+                      {currentThread.participant_patient && (
+                        <div className="flex items-center gap-1">
+                          <UserIcon className="h-4 w-4 shrink-0" />
+                          <span className="truncate" style={{ fontFamily: 'inherit' }}>
+                            المريض: {currentThread.participant_patient.first_name} {currentThread.participant_patient.last_name}
+                          </span>
+                        </div>
+                      )}
                       {currentThread.created_at && (
                         <div className="flex items-center gap-1">
                           <ClockIcon className="h-4 w-4 shrink-0" />
@@ -663,7 +825,7 @@ export default function MessagingPage() {
             </div>
 
             {/* Input إرسال رسالة */}
-            {currentThread && !currentThread.is_closed && (
+            {currentThread && !currentThread.is_closed && canSendInCurrentThread && (
               <div className="p-3 sm:p-4 border-t border-sky-100 bg-white shrink-0">
                 <div className="flex gap-2 sm:gap-3 items-end">
                   <textarea
@@ -704,6 +866,15 @@ export default function MessagingPage() {
                     {messageContent.length} / 2000
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* رسالة للمشرف في case threads (viewer only) */}
+            {currentThread && !currentThread.is_closed && !canSendInCurrentThread && currentThread.thread_type === 'case' && (
+              <div className="p-4 border-t border-sky-100 bg-sky-50 shrink-0">
+                <p className="text-sm text-sky-700 text-center" style={{ fontFamily: 'inherit' }}>
+                  أنت viewer فقط في هذه المحادثة - يمكنك قراءة الرسائل فقط ولا يمكنك الإرسال
+                </p>
               </div>
             )}
 

@@ -103,11 +103,24 @@ export default function NotificationsPage() {
     if (typeof window === 'undefined') return;
 
     const token = localStorage.getItem('access_token');
-    if (!token) return;
+    if (!token) {
+      console.warn('No access token found for WebSocket connection');
+      return;
+    }
 
     const apiURL = process.env.NEXT_PUBLIC_API_URL || 'https://medismile1-production.up.railway.app/api';
     const wsURL = apiURL.replace(/^https?/, apiURL.startsWith('https') ? 'wss' : 'ws').replace(/\/api$/, '');
-    const ws = new WebSocket(`${wsURL}/ws/notifications/?token=${encodeURIComponent(token)}`);
+    const fullWSURL = `${wsURL}/ws/notifications/?token=${encodeURIComponent(token)}`;
+    
+    console.log('Attempting WebSocket connection to:', wsURL + '/ws/notifications/');
+    
+    let ws;
+    try {
+      ws = new WebSocket(fullWSURL);
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+      return;
+    }
 
     ws.onopen = () => {
       console.log('WebSocket connected for notifications');
@@ -129,21 +142,34 @@ export default function NotificationsPage() {
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error for notifications:', error);
+      // WebSocket error events don't contain much information
+      // Log the WebSocket state and URL for debugging
+      console.error('WebSocket error for notifications:', {
+        readyState: ws?.readyState,
+        url: fullWSURL.substring(0, 50) + '...', // Don't log full token
+        error: error,
+      });
     };
 
     ws.onclose = (event) => {
-      console.log('WebSocket closed for notifications:', event.code, event.reason);
-      // إعادة الاتصال بعد 5 ثوانٍ
-      setTimeout(() => {
-        if (typeof window !== 'undefined' && localStorage.getItem('access_token')) {
-          // سيتم إعادة الاتصال تلقائياً عند تحميل الصفحة مرة أخرى
-        }
-      }, 5000);
+      console.log('WebSocket closed for notifications:', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+      });
+      // إعادة الاتصال بعد 5 ثوانٍ فقط إذا لم يكن إغلاقاً طوعياً
+      if (event.code !== 1000 && event.code !== 1001) {
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && localStorage.getItem('access_token')) {
+            // سيتم إعادة الاتصال تلقائياً عند تحميل الصفحة مرة أخرى
+            console.log('WebSocket will reconnect on next page load');
+          }
+        }, 5000);
+      }
     };
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (ws && ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
         ws.close(1000, 'Component unmounting');
       }
     };
