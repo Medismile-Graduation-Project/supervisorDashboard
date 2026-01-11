@@ -41,6 +41,19 @@ export const fetchCases = createAsyncThunk(
   }
 );
 
+// جلب الحالات الجديدة للمشرف
+export const fetchNewCases = createAsyncThunk(
+  'cases/fetchNewCases',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/cases/supervisor/new/', { params });
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 export const fetchCaseById = createAsyncThunk(
   'cases/fetchCaseById',
   async (caseId, { rejectWithValue, getState }) => {
@@ -237,6 +250,7 @@ export const assignSupervisor = createAsyncThunk(
 
 const initialState = {
   cases: [],
+  newCases: [],
   currentCase: null,
   assignmentRequests: [],
   loading: false,
@@ -275,6 +289,20 @@ const casesSlice = createSlice({
         state.cases = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchCases.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Fetch New Cases
+      .addCase(fetchNewCases.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchNewCases.fulfilled, (state, action) => {
+        state.loading = false;
+        // التأكد من أن البيانات هي array
+        state.newCases = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchNewCases.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
@@ -342,7 +370,9 @@ const casesSlice = createSlice({
         if (caseIndex !== -1) {
           state.cases[caseIndex] = action.payload;
         }
-        // تحديث currentCase إذا كان نفس الحالة
+        // إزالة الحالة من قائمة الحالات الجديدة بعد اتخاذ القرار
+        state.newCases = state.newCases.filter((c) => c.id !== action.payload.id);
+        // تحديث currentCase إذا كان نفسه
         if (state.currentCase?.id === action.payload.id) {
           state.currentCase = action.payload;
         }

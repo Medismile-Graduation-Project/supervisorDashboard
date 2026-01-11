@@ -6,6 +6,7 @@ import { useAppSelector } from '@/hooks/useAppSelector';
 import {
   fetchAssignmentRequests,
   respondToAssignmentRequest,
+  fetchCaseById,
 } from '@/store/slices/casesSlice';
 import { toast } from 'react-hot-toast';
 import {
@@ -31,6 +32,20 @@ const statusColors = {
   rejected: 'bg-red-100 text-red-800',
 };
 
+const priorityLabels = {
+  low: 'منخفضة',
+  medium: 'متوسطة',
+  high: 'عالية',
+  urgent: 'عاجلة',
+};
+
+const priorityColors = {
+  low: 'bg-sky-100 text-sky-700',
+  medium: 'bg-sky-200 text-sky-800',
+  high: 'bg-sky-300 text-sky-900',
+  urgent: 'bg-sky-500 text-white',
+};
+
 export default function AssignmentRequestsPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -42,10 +57,56 @@ export default function AssignmentRequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [responseAction, setResponseAction] = useState('accepted'); // 'accepted' or 'rejected'
   const [supervisorResponse, setSupervisorResponse] = useState('');
+  const [casesData, setCasesData] = useState({}); // لتخزين بيانات الحالات
 
   useEffect(() => {
     dispatch(fetchAssignmentRequests({ status: statusFilter }));
   }, [dispatch, statusFilter]);
+
+  // جلب بيانات الحالات لكل طلب
+  useEffect(() => {
+    const fetchCasesForRequests = async () => {
+      if (!Array.isArray(assignmentRequests) || assignmentRequests.length === 0) {
+        return;
+      }
+
+      // جمع جميع case IDs الفريدة
+      const caseIds = new Set();
+      assignmentRequests.forEach((request) => {
+        const caseId = request.case || request.case_id;
+        if (caseId) {
+          caseIds.add(caseId);
+        }
+      });
+
+      // جلب بيانات الحالات التي لم يتم جلبها بعد
+      const fetchedCases = {};
+      await Promise.all(
+        Array.from(caseIds).map(async (caseId) => {
+          // التحقق من أن الحالة لم يتم جلبها بالفعل
+          if (casesData[caseId]) {
+            return;
+          }
+          try {
+            const result = await dispatch(fetchCaseById(caseId));
+            if (fetchCaseById.fulfilled.match(result)) {
+              fetchedCases[caseId] = result.payload;
+            }
+          } catch (error) {
+            console.error(`Error fetching case ${caseId}:`, error);
+          }
+        })
+      );
+
+      // تحديث casesData
+      if (Object.keys(fetchedCases).length > 0) {
+        setCasesData((prev) => ({ ...prev, ...fetchedCases }));
+      }
+    };
+
+    fetchCasesForRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignmentRequests, dispatch]);
 
   const handleRespondToRequest = async () => {
     if (!selectedRequest) return;
@@ -90,7 +151,7 @@ export default function AssignmentRequestsPage() {
           request.student?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           request.student?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           request.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          request.case_title?.toLowerCase().includes(searchTerm.toLowerCase());
+          casesData[request.case || request.case_id]?.title?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesStatus = !statusFilter || request.status === statusFilter;
 
@@ -233,18 +294,48 @@ export default function AssignmentRequestsPage() {
                       </div>
 
                       {/* Case Info */}
-                      {request.case_title && (
-                        <div className="mb-3">
-                          <button
-                            onClick={() => router.push(`/dashboard/cases/${request.case || request.case_id}`)}
-                            className="flex items-center gap-2 text-sm text-sky-600 hover:text-sky-700 font-medium"
-                            style={{ fontFamily: 'inherit' }}
-                          >
-                            <FolderIcon className="h-4 w-4" />
-                            {request.case_title}
-                          </button>
-                        </div>
-                      )}
+                      {(request.case || request.case_id) && (() => {
+                        const caseId = request.case || request.case_id;
+                        const caseData = casesData[caseId];
+                        return (
+                          <div className="mb-3 p-3 bg-sky-50 rounded-lg border border-sky-200">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <FolderIcon className="h-4 w-4 text-sky-600 flex-shrink-0" />
+                                  <button
+                                    onClick={() => router.push(`/dashboard/cases/${caseId}`)}
+                                    className="text-sm font-semibold text-dark hover:text-sky-600 transition-colors text-right"
+                                    style={{ fontFamily: 'inherit' }}
+                                  >
+                                    {caseData?.title || 'جاري التحميل...'}
+                                  </button>
+                                </div>
+                                {caseData?.description && (
+                                  <p className="text-xs text-dark-lighter line-clamp-2 mb-2 leading-relaxed" style={{ fontFamily: 'inherit' }}>
+                                    {caseData.description}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-3 text-xs text-dark-lighter flex-wrap">
+                                  {caseData?.patient && (
+                                    <span style={{ fontFamily: 'inherit' }}>
+                                      المريض:{' '}
+                                      <span className="font-medium text-dark">
+                                        {caseData.patient.first_name} {caseData.patient.last_name}
+                                      </span>
+                                    </span>
+                                  )}
+                                  {caseData?.priority && (
+                                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${priorityColors[caseData.priority] || priorityColors.medium}`} style={{ fontFamily: 'inherit' }}>
+                                      {priorityLabels[caseData.priority] || caseData.priority}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* Message */}
                       {request.message && (

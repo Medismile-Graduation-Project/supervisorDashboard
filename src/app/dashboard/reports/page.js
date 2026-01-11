@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { fetchReports, fetchReportById, createReport, updateReport, submitReport, approveReport, rejectReport } from '@/store/slices/reportsSlice';
-import { fetchCases } from '@/store/slices/casesSlice';
+import { fetchCases, fetchCaseById } from '@/store/slices/casesSlice';
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -53,6 +53,7 @@ export default function ReportsPage() {
   const { cases = [] } = useAppSelector((state) => state.cases);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [casesData, setCasesData] = useState({}); // لتخزين بيانات الحالات
   const [showFilters, setShowFilters] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -98,6 +99,50 @@ export default function ReportsPage() {
     dispatch(fetchReports());
     dispatch(fetchCases());
   }, [dispatch]);
+
+  // جلب بيانات الحالات لكل تقرير
+  useEffect(() => {
+    const fetchCasesForReports = async () => {
+      if (!Array.isArray(reports) || reports.length === 0) {
+        return;
+      }
+
+      // جمع جميع case IDs الفريدة من التقارير
+      const caseIds = new Set();
+      reports.forEach((report) => {
+        if (report.target_type === 'case' && report.target_id) {
+          caseIds.add(report.target_id);
+        }
+      });
+
+      // جلب بيانات الحالات التي لم يتم جلبها بعد
+      const fetchedCases = {};
+      await Promise.all(
+        Array.from(caseIds).map(async (caseId) => {
+          // التحقق من أن الحالة لم يتم جلبها بالفعل
+          if (casesData[caseId]) {
+            return;
+          }
+          try {
+            const result = await dispatch(fetchCaseById(caseId));
+            if (fetchCaseById.fulfilled.match(result)) {
+              fetchedCases[caseId] = result.payload;
+            }
+          } catch (error) {
+            console.error(`Error fetching case ${caseId}:`, error);
+          }
+        })
+      );
+
+      // تحديث casesData
+      if (Object.keys(fetchedCases).length > 0) {
+        setCasesData((prev) => ({ ...prev, ...fetchedCases }));
+      }
+    };
+
+    fetchCasesForReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reports, dispatch]);
 
   useEffect(() => {
     if (selectedReportId) {
@@ -528,6 +573,26 @@ export default function ReportsPage() {
                         {report.description}
                       </p>
                     )}
+
+                    {/* Student and Case Info */}
+                    <div className="mb-4 flex flex-wrap gap-4 text-sm">
+                      {report.student_name && (
+                        <div className="flex items-center gap-2">
+                          <UserIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                          <span className="text-dark-lighter">الطالب:</span>
+                          <span className="font-semibold text-dark">{report.student_name}</span>
+                        </div>
+                      )}
+                      {report.target_type === 'case' && report.target_id && (
+                        <div className="flex items-center gap-2">
+                          <ChartBarIcon className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                          <span className="text-dark-lighter">الحالة:</span>
+                          <span className="font-semibold text-dark">
+                            {casesData[report.target_id]?.title || 'جاري التحميل...'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-4 text-xs text-dark-lighter flex-wrap">
                       {report.created_at && (
