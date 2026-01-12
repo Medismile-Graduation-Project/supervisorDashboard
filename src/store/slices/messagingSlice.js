@@ -247,18 +247,26 @@ const messagingSlice = createSlice({
         state.loading = false;
         const payload = action.payload;
         
-        // حسب التوثيق: GET /threads/{id}/ يعيد { thread: Thread, messages: {...} }
+        // حسب التوثيق: GET /threads/{id}/ قد يعيد Thread object مباشر مع messages array
         if (payload.thread) {
+          // إذا كان response يحتوي على thread object منفصل
           state.currentThread = payload.thread;
           // معالجة messages إذا كانت موجودة (للتوافق مع API)
           if (payload.messages) {
-            state.messages = payload.messages.results || [];
+            // دعم تنسيقين: messages array مباشر أو messages.results
+            state.messages = Array.isArray(payload.messages) ? payload.messages : (payload.messages.results || []);
             state.messagesCursor = payload.messages.next_cursor || null;
-            state.messagesCount = payload.messages.count || 0;
+            state.messagesCount = payload.messages.count || payload.messages.length || 0;
           }
         } else {
           // fallback: إذا كان response مباشر (Thread object)
           state.currentThread = payload;
+          // إذا كان Thread object يحتوي على messages array مباشر
+          if (payload.messages && Array.isArray(payload.messages)) {
+            state.messages = payload.messages;
+            state.messagesCount = payload.messages.length;
+            state.messagesCursor = null;
+          }
         }
       })
       .addCase(fetchThreadById.rejected, (state, action) => {

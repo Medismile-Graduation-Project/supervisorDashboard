@@ -10,10 +10,8 @@ import {
   sendMessage,
   markMessageAsRead,
   clearCurrentThread,
-  websocketMessageReceived,
 } from '@/store/slices/messagingSlice';
 import { fetchCaseById } from '@/store/slices/casesSlice';
-import wsManager from '@/lib/websocket';
 import {
   MagnifyingGlassIcon,
   PaperAirplaneIcon,
@@ -154,13 +152,6 @@ export default function MessagingPage() {
     return () => clearInterval(interval);
   }, [dispatch, showClosedThreads]);
 
-  // تنظيف جميع WebSocket connections عند إلغاء المكون
-  useEffect(() => {
-    return () => {
-      wsManager.disconnectAll();
-    };
-  }, []);
-
   useEffect(() => {
     if (selectedThreadId) {
       // جلب معلومات الـ thread (قد يحتوي على messages أيضاً حسب API)
@@ -172,9 +163,19 @@ export default function MessagingPage() {
                                'فشل تحميل المحادثة';
           toast.error(errorMessage);
         } else if (fetchThreadById.fulfilled.match(result)) {
-          // إذا لم تكن هناك messages في response، نجلبها بشكل منفصل
+          // التحقق من وجود messages في response
           const payload = result.payload;
-          if (!payload.messages || !payload.messages.results || payload.messages.results.length === 0) {
+          const threadData = payload.thread || payload;
+          const messagesData = payload.messages || threadData.messages;
+          
+          // دعم تنسيقين: messages array مباشر أو messages.results
+          const hasMessages = messagesData && (
+            Array.isArray(messagesData) ? messagesData.length > 0 : 
+            (messagesData.results && messagesData.results.length > 0)
+          );
+          
+          // إذا لم تكن هناك messages في response، نجلبها بشكل منفصل
+          if (!hasMessages) {
             dispatch(fetchMessages({ threadId: selectedThreadId, limit: 20, cursor: null })).then((msgResult) => {
               if (fetchMessages.rejected.match(msgResult)) {
                 const errorMessage = msgResult.payload?.message || 
@@ -192,86 +193,7 @@ export default function MessagingPage() {
     }
   }, [selectedThreadId, dispatch]);
 
-  // WebSocket connection for real-time updates
-  useEffect(() => {
-    if (!selectedThreadId) {
-      return;
-    }
-
-    // Cleanup previous connection
-    wsManager.disconnect(selectedThreadId);
-
-    // Handler for WebSocket messages
-    const handleWebSocketMessage = (data) => {
-      // التعامل مع الأحداث المختلفة
-      // البيانات قد تأتي كـ { event: '...', data: {...} } أو { event: '...', message: {...} }
-      const event = data.event || data.type;
-      
-      if (event === 'message.created' || data.message) {
-        // إضافة رسالة جديدة إلى Redux
-        dispatch(websocketMessageReceived({
-          event: 'message.created',
-          data: data,
-        }));
-        
-        // التمرير للأسفل تلقائياً إذا كانت الرسالة في المحادثة المفتوحة
-        const message = data.message || data.data || data;
-        const threadId = message.thread_id || data.thread_id || selectedThreadId;
-        
-        if (threadId === selectedThreadId) {
-          shouldScrollRef.current = true;
-          setTimeout(() => scrollToBottom(true), 200);
-        }
-      } else if (event === 'message.read') {
-        // تحديث حالة القراءة
-        dispatch(websocketMessageReceived({
-          event: 'message.read',
-          data: data,
-        }));
-      } else if (event === 'thread.closed') {
-        // تحديث حالة thread
-        dispatch(websocketMessageReceived({
-          event: 'thread.closed',
-          data: data,
-        }));
-        
-        if (data.thread_id === selectedThreadId || data.id === selectedThreadId) {
-          toast.info('تم إغلاق المحادثة');
-        }
-      }
-    };
-
-    // Handler for WebSocket errors
-    const handleWebSocketError = (error) => {
-      console.error('WebSocket error:', error);
-      // لا نعرض toast للأخطاء البسيطة (قد تكون أخطاء اتصال مؤقتة)
-      // toast.error('خطأ في الاتصال الفوري');
-    };
-
-    // Handler for WebSocket close
-    const handleWebSocketClose = (event) => {
-      console.log('WebSocket closed:', event.code, event.reason);
-      // إذا كان الإغلاق غير طوعي، ستحاول إعادة الاتصال تلقائياً
-    };
-
-    // الاتصال بـ WebSocket
-    const ws = wsManager.connect(
-      selectedThreadId,
-      handleWebSocketMessage,
-      handleWebSocketError,
-      handleWebSocketClose
-    );
-
-    // Cleanup عند إغلاق المحادثة أو تغييرها
-    return () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        wsManager.disconnect(selectedThreadId);
-      }
-    };
-  }, [selectedThreadId, dispatch, scrollToBottom]);
-
-  // تحديث تلقائي للرسائل عند فتح محادثة (كل 30 ثانية كـ backup)
-  // WebSocket سيكون الطريقة الأساسية للتحديث الفوري
+  // تحديث تلقائي للرسائل عند فتح محادثة (كل 30 ثانية)
   useEffect(() => {
     if (!selectedThreadId) return;
 
@@ -291,8 +213,12 @@ export default function MessagingPage() {
   useEffect(() => {
     if (messages.length > 0 && user?.id && selectedThreadId) {
       // تعليم الرسائل غير المقروءة كمقروءة
+      // دعم تنسيقين: sender.id أو sender_id
       const unreadMessages = messages.filter(
-        msg => !msg.is_read && msg.sender_id !== user.id
+        msg => {
+          const senderId = msg.sender?.id || msg.sender_id;
+          return (msg.is_read === undefined || msg.is_read === false) && senderId !== user.id;
+        }
       );
       
       // تعليم الرسائل كمقروءة (بشكل متوازي)
@@ -355,40 +281,14 @@ export default function MessagingPage() {
     return matchesSearch;
   });
 
-  // التحقق من صلاحيات الإرسال
+  // التحقق من صلاحيات الإرسال (مرونة أكثر - الـ Backend يقرر الصلاحيات النهائية)
   const canSendMessage = (thread) => {
+    // فقط التحقق من الأساسيات: thread موجود وغير مغلق، ومستخدم مسجل دخول
     if (!thread || thread.is_closed) return false;
     if (!user?.id) return false;
-
-    // Case threads: يمكن لـ patient و assigned_student الإرسال
-    // المشرف viewer فقط (لا يمكنه الإرسال)
-    if (thread.thread_type === 'case') {
-      // التحقق إذا كان المستخدم هو participant_patient
-      if (thread.participant_patient?.id === user.id) {
-        return true;
-      }
-      // التحقق إذا كان المستخدم هو participant_student
-      if (thread.participant_student?.id === user.id) {
-        return true;
-      }
-      // المشرف viewer فقط (لا يمكنه الإرسال)
-      return false;
-    }
-
-    // Course threads: يمكن للـ enrolled_student و course_supervisor الإرسال
-    if (thread.thread_type === 'course') {
-      // التحقق إذا كان المستخدم هو participant_supervisor
-      if (thread.participant_supervisor?.id === user.id) {
-        return true;
-      }
-      // التحقق إذا كان المستخدم هو participant_student
-      if (thread.participant_student?.id === user.id) {
-        return true;
-      }
-      return false;
-    }
-
-    return false;
+    
+    // السماح بمحاولة الإرسال دائماً - الـ Backend سيرفض إذا لم يكن له صلاحية (403)
+    return true;
   };
 
   const canSendInCurrentThread = currentThread ? canSendMessage(currentThread) : false;
@@ -404,16 +304,7 @@ export default function MessagingPage() {
       return;
     }
 
-    // التحقق من صلاحيات الإرسال
-    if (!canSendMessage(currentThread)) {
-      if (currentThread?.thread_type === 'case') {
-        toast.error('أنت viewer فقط في هذه المحادثة - لا يمكنك الإرسال');
-      } else {
-        toast.error('ليس لديك صلاحية للإرسال في هذه المحادثة');
-      }
-      return;
-    }
-
+    // السماح بمحاولة الإرسال - الـ Backend سيرفض إذا لم يكن له صلاحية (403)
     try {
       const result = await dispatch(sendMessage({
         threadId: selectedThreadId,
@@ -432,10 +323,20 @@ export default function MessagingPage() {
           });
         }, 100);
       } else {
-        const errorMessage = result.payload?.message || 
-                           result.payload?.error || 
-                           result.payload?.detail ||
+        // معالجة الأخطاء من الـ Backend
+        const errorPayload = result.payload;
+        const statusCode = errorPayload?.status || errorPayload?.statusCode;
+        
+        let errorMessage = errorPayload?.detail || 
+                           errorPayload?.message || 
+                           errorPayload?.error ||
                            'فشل إرسال الرسالة';
+        
+        // معالجة خاصة لخطأ 403 (Forbidden)
+        if (statusCode === 403 || errorPayload?.status_code === 403) {
+          errorMessage = 'ليس لديك صلاحية لإرسال رسائل في هذه المحادثة';
+        }
+        
         toast.error(errorMessage);
       }
     } catch (error) {
@@ -595,9 +496,9 @@ export default function MessagingPage() {
                             {thread.last_message.content}
                           </p>
                         )}
-                        {thread.last_message?.created_at && (
+                        {thread.last_message && (thread.last_message.sent_at || thread.last_message.created_at) && (
                           <p className="text-xs text-dark-lighter mt-1.5" style={{ fontFamily: 'inherit' }}>
-                            {new Date(thread.last_message.created_at).toLocaleDateString('ar-SA', {
+                            {new Date(thread.last_message.sent_at || thread.last_message.created_at).toLocaleDateString('ar-SA', {
                               month: 'short',
                               day: 'numeric',
                               hour: '2-digit',
@@ -756,10 +657,15 @@ export default function MessagingPage() {
                     </div>
                   )}
                   {messages.map((message, index) => {
-                    const isFromCurrentUser = message.sender_id === user?.id;
+                    // دعم تنسيقين: sender.id أو sender_id
+                    const senderId = message.sender?.id || message.sender_id;
+                    const isFromCurrentUser = senderId === user?.id;
                     const prevMessage = index > 0 ? messages[index - 1] : null;
+                    // دعم تنسيقين: sent_at أو created_at
+                    const messageDate = message.sent_at || message.created_at;
+                    const prevMessageDate = prevMessage ? (prevMessage.sent_at || prevMessage.created_at) : null;
                     const showDateSeparator = !prevMessage || 
-                      new Date(message.created_at).toDateString() !== new Date(prevMessage.created_at).toDateString();
+                      new Date(messageDate).toDateString() !== new Date(prevMessageDate).toDateString();
                     
                     return (
                       <div key={message.id}>
@@ -768,7 +674,7 @@ export default function MessagingPage() {
                             <div className="flex items-center gap-2 px-3 py-1 bg-white/80 backdrop-blur-sm rounded-full border border-sky-200">
                               <ClockIcon className="h-3 w-3 text-dark-lighter" />
                               <span className="text-xs text-dark-lighter font-medium" style={{ fontFamily: 'inherit' }}>
-                                {new Date(message.created_at).toLocaleDateString('ar-SA', {
+                                {new Date(message.sent_at || message.created_at).toLocaleDateString('ar-SA', {
                                   year: 'numeric',
                                   month: 'long',
                                   day: 'numeric',
@@ -799,14 +705,14 @@ export default function MessagingPage() {
                               isFromCurrentUser ? 'text-sky-100' : 'text-dark-lighter'
                             }`}>
                               <span style={{ fontFamily: 'inherit' }}>
-                                {new Date(message.created_at).toLocaleTimeString('ar-SA', {
+                                {new Date(message.sent_at || message.created_at).toLocaleTimeString('ar-SA', {
                                   hour: '2-digit',
                                   minute: '2-digit',
                                 })}
                               </span>
                               {isFromCurrentUser && (
                                 <span className="flex items-center">
-                                  {message.is_read ? (
+                                  {message.is_read !== undefined && message.is_read !== false ? (
                                     <CheckCircleIcon className="h-3.5 w-3.5" />
                                   ) : (
                                     <CheckIcon className="h-3.5 w-3.5" />
@@ -825,7 +731,7 @@ export default function MessagingPage() {
             </div>
 
             {/* Input إرسال رسالة */}
-            {currentThread && !currentThread.is_closed && canSendInCurrentThread && (
+            {currentThread && !currentThread.is_closed && (
               <div className="p-3 sm:p-4 border-t border-sky-100 bg-white shrink-0">
                 <div className="flex gap-2 sm:gap-3 items-end">
                   <textarea
@@ -869,14 +775,6 @@ export default function MessagingPage() {
               </div>
             )}
 
-            {/* رسالة للمشرف في case threads (viewer only) */}
-            {currentThread && !currentThread.is_closed && !canSendInCurrentThread && currentThread.thread_type === 'case' && (
-              <div className="p-4 border-t border-sky-100 bg-sky-50 shrink-0">
-                <p className="text-sm text-sky-700 text-center" style={{ fontFamily: 'inherit' }}>
-                  أنت viewer فقط في هذه المحادثة - يمكنك قراءة الرسائل فقط ولا يمكنك الإرسال
-                </p>
-              </div>
-            )}
 
             {currentThread?.is_closed && (
               <div className="p-4 border-t border-sky-100 bg-red-50 shrink-0">
