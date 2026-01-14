@@ -1,10 +1,38 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '@/lib/axios';
 
+// Helper function to check lockout status
+const checkLockout = () => {
+  if (typeof window === 'undefined') return null;
+  const lockoutUntil = localStorage.getItem('login_lockout_until');
+  if (!lockoutUntil) return null;
+  const lockoutTime = parseInt(lockoutUntil, 10);
+  const now = Date.now();
+  if (now < lockoutTime) {
+    return lockoutTime - now; // Return remaining milliseconds
+  }
+  // Lockout expired, clear it
+  localStorage.removeItem('login_lockout_until');
+  localStorage.removeItem('login_failed_attempts');
+  return null;
+};
+
 // Async Thunks
 export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
+    // التحقق من حالة الحظر قبل محاولة تسجيل الدخول
+    const lockoutRemaining = checkLockout();
+    if (lockoutRemaining !== null) {
+      const secondsRemaining = Math.ceil(lockoutRemaining / 1000);
+      return rejectWithValue({
+        message: `تم الحظر بسبب محاولات تسجيل الدخول الفاشلة. يرجى المحاولة مرة أخرى بعد ${secondsRemaining} ثانية`,
+        error: 'Account locked',
+        isLocked: true,
+        lockoutRemaining: secondsRemaining,
+      });
+    }
+
     try {
       // 1. تسجيل الدخول والحصول على Tokens
       const response = await api.post('/accounts/login/supervisor/', { email, password });
@@ -46,6 +74,9 @@ export const login = createAsyncThunk(
         // حفظ بيانات المستخدم الكاملة في localStorage
         if (typeof window !== 'undefined') {
           localStorage.setItem('user', JSON.stringify(userData));
+          // إعادة تعيين محاولات تسجيل الدخول الفاشلة عند نجاح تسجيل الدخول
+          localStorage.removeItem('login_failed_attempts');
+          localStorage.removeItem('login_lockout_until');
         }
         
         // إرجاع البيانات الكاملة من API
@@ -70,6 +101,29 @@ export const login = createAsyncThunk(
     } catch (error) {
       // معالجة أخطاء تسجيل الدخول
       const errorMessage = error.response?.data || error.message;
+      
+      // تتبع المحاولات الفاشلة
+      if (typeof window !== 'undefined') {
+        const failedAttempts = parseInt(localStorage.getItem('login_failed_attempts') || '0', 10);
+        const newFailedAttempts = failedAttempts + 1;
+        
+        if (newFailedAttempts >= 5) {
+          // تفعيل الحظر لمدة 60 ثانية
+          const lockoutUntil = Date.now() + 60000; // 60 seconds
+          localStorage.setItem('login_lockout_until', lockoutUntil.toString());
+          localStorage.setItem('login_failed_attempts', '0'); // Reset for next lockout cycle
+          
+          return rejectWithValue({
+            message: 'تم الحظر بسبب 5 محاولات فاشلة. يرجى المحاولة مرة أخرى بعد 60 ثانية',
+            error: errorMessage,
+            isLocked: true,
+            lockoutRemaining: 60,
+          });
+        } else {
+          localStorage.setItem('login_failed_attempts', newFailedAttempts.toString());
+        }
+      }
+      
       return rejectWithValue({
         message: errorMessage?.detail || 
                 errorMessage?.message || 
@@ -170,6 +224,7 @@ const getInitialState = () => {
       loading: false,
       error: null,
       initialized: false,
+      lockoutRemaining: null,
     };
   }
 
@@ -177,6 +232,10 @@ const getInitialState = () => {
     const userStr = localStorage.getItem('user');
     const accessToken = localStorage.getItem('access_token');
     const refreshToken = localStorage.getItem('refresh_token');
+    
+    // التحقق من حالة الحظر
+    const lockoutRemaining = checkLockout();
+    const lockoutSeconds = lockoutRemaining !== null ? Math.ceil(lockoutRemaining / 1000) : null;
 
     return {
       user: userStr ? JSON.parse(userStr) : null,
@@ -188,6 +247,7 @@ const getInitialState = () => {
       loading: false,
       error: null,
       initialized: true,
+      lockoutRemaining: lockoutSeconds,
     };
   } catch (error) {
     return {
@@ -197,6 +257,7 @@ const getInitialState = () => {
       loading: false,
       error: null,
       initialized: true,
+      lockoutRemaining: null,
     };
   }
 };
@@ -220,6 +281,10 @@ const authSlice = createSlice({
           const userStr = localStorage.getItem('user');
           const accessToken = localStorage.getItem('access_token');
           const refreshToken = localStorage.getItem('refresh_token');
+          
+          // التحقق من حالة الحظر
+          const lockoutRemaining = checkLockout();
+          state.lockoutRemaining = lockoutRemaining !== null ? Math.ceil(lockoutRemaining / 1000) : null;
 
           state.user = userStr ? JSON.parse(userStr) : null;
           state.tokens = {
@@ -232,6 +297,10 @@ const authSlice = createSlice({
           state.initialized = true;
         }
       }
+    },
+    updateLockoutRemaining: (state) => {
+      const lockoutRemaining = checkLockout();
+      state.lockoutRemaining = lockoutRemaining !== null ? Math.ceil(lockoutRemaining / 1000) : null;
     },
   },
   extraReducers: (builder) => {
@@ -247,11 +316,15 @@ const authSlice = createSlice({
         state.tokens = action.payload.tokens;
         state.isAuthenticated = true;
         state.error = null;
+        state.lockoutRemaining = null;
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
         state.isAuthenticated = false;
+        if (action.payload?.isLocked) {
+          state.lockoutRemaining = action.payload.lockoutRemaining || null;
+        }
       })
       // Logout
       .addCase(logout.fulfilled, (state) => {
@@ -286,6 +359,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setUser, initializeAuth } = authSlice.actions;
+export const { clearError, setUser, initializeAuth, updateLockoutRemaining } = authSlice.actions;
 export default authSlice.reducer;
 

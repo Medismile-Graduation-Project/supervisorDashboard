@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
-import { login, clearError, initializeAuth } from '@/store/slices/authSlice';
+import { login, clearError, initializeAuth, updateLockoutRemaining } from '@/store/slices/authSlice';
 import toast from 'react-hot-toast';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
@@ -12,7 +12,7 @@ import Image from 'next/image';
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { loading, error, isAuthenticated, initialized } = useAppSelector((state) => state.auth);
+  const { loading, error, isAuthenticated, initialized, lockoutRemaining } = useAppSelector((state) => state.auth);
   const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -45,6 +45,16 @@ export default function LoginPage() {
     }
   }, [formData, dispatch]);
 
+  // تحديث عداد الحظر كل ثانية
+  useEffect(() => {
+    if (lockoutRemaining !== null && lockoutRemaining > 0) {
+      const interval = setInterval(() => {
+        dispatch(updateLockoutRemaining());
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [lockoutRemaining, dispatch]);
+
   const validateForm = () => {
     const errors = {};
     
@@ -66,6 +76,11 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // منع الإرسال إذا كان الحساب محظوراً
+    if (lockoutRemaining !== null && lockoutRemaining > 0) {
+      return;
+    }
     
     if (!validateForm()) {
       return;
@@ -147,6 +162,20 @@ export default function LoginPage() {
                   </p>
                 </div>
               )}
+              
+              {/* Lockout Message */}
+              {(lockoutRemaining !== null && lockoutRemaining > 0) && (
+                <div className="mb-6 w-full">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-sm text-red-700 text-center font-semibold mb-2" style={{ fontFamily: 'inherit' }}>
+                      تم الحظر بسبب 5 محاولات فاشلة
+                    </p>
+                    <p className="text-sm text-red-600 text-center" style={{ fontFamily: 'inherit' }}>
+                      يرجى المحاولة مرة أخرى بعد {lockoutRemaining} ثانية
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -173,7 +202,7 @@ export default function LoginPage() {
                   } px-4 py-3.5 pr-12 text-base placeholder-dark-lighter/50 focus:outline-none focus:ring-2 focus:ring-sky-400`}
                   style={{ fontFamily: 'inherit' }}
                   placeholder="البريد الإلكتروني"
-                  disabled={loading}
+                  disabled={loading || (lockoutRemaining !== null && lockoutRemaining > 0)}
                   suppressHydrationWarning
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
@@ -216,7 +245,7 @@ export default function LoginPage() {
                   } px-4 py-3.5 pr-12 text-base placeholder-dark-lighter/50 focus:outline-none focus:ring-2 focus:ring-sky-400`}
                   style={{ fontFamily: 'inherit' }}
                   placeholder="كلمة المرور"
-                  disabled={loading}
+                  disabled={loading || (lockoutRemaining !== null && lockoutRemaining > 0)}
                   suppressHydrationWarning
                 />
                 <button
@@ -251,7 +280,7 @@ export default function LoginPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (lockoutRemaining !== null && lockoutRemaining > 0)}
                 className="w-full rounded-lg bg-sky-400 px-4 py-3.5 text-base font-semibold text-white hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
                 style={{ fontFamily: 'inherit' }}
                 suppressHydrationWarning
