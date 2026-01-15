@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { logout } from '@/store/slices/authSlice';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { fetchNotifications, markNotificationAsRead } from '@/store/slices/notificationsSlice';
+import { searchAcrossAll, setQuery, clearSearch } from '@/store/slices/searchSlice';
+import SearchDropdown from '@/components/Search/SearchDropdown';
 import Image from 'next/image';
 
 export default function Header({ onMenuClick }) {
@@ -14,10 +16,13 @@ export default function Header({ onMenuClick }) {
   const router = useRouter();
   const { user, initialized } = useAppSelector((state) => state.auth);
   const { notifications, unreadCount, loading } = useAppSelector((state) => state.notifications);
+  const { query: searchQuery, results: searchResults, loading: searchLoading } = useAppSelector((state) => state.search);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotificationsMenu, setShowNotificationsMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -79,6 +84,42 @@ export default function Header({ onMenuClick }) {
     router.push('/login');
   };
 
+  // Debounce search function
+  useEffect(() => {
+    let timeout;
+    if (searchInput && searchInput.trim().length >= 2) {
+      timeout = setTimeout(() => {
+        dispatch(setQuery(searchInput.trim()));
+        dispatch(searchAcrossAll(searchInput.trim()));
+        setShowSearchDropdown(true);
+      }, 300);
+    } else if (searchInput.trim().length === 0) {
+      dispatch(clearSearch());
+      setShowSearchDropdown(false);
+    }
+    return () => clearTimeout(timeout);
+  }, [searchInput, dispatch]);
+
+  const handleSearchInputChange = (e) => {
+    const value = e.target.value;
+    setSearchInput(value);
+  };
+
+  const handleSearchInputFocus = () => {
+    if (searchQuery && searchResults.total > 0) {
+      setShowSearchDropdown(true);
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchInput.trim().length >= 2) {
+      router.push(`/dashboard/search?q=${encodeURIComponent(searchInput.trim())}`);
+      setShowSearchDropdown(false);
+      setShowSearch(false);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 flex h-14 sm:h-16 items-center justify-between bg-white border-b border-sky-100 shadow-sm px-3 sm:px-4 lg:px-6">
       {/* Left Side - Menu Button (Mobile) & Logo */}
@@ -113,15 +154,28 @@ export default function Header({ onMenuClick }) {
       <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 flex-shrink-0">
         {/* Search - Desktop */}
         <div className="hidden md:block relative w-48 lg:w-64 min-w-0">
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-            <MagnifyingGlassIcon className="h-5 w-5 text-dark-lighter" />
-          </div>
-          <input
-            type="text"
-            placeholder="ابحث عن محتوى..."
-            className="block w-full rounded-lg border border-sky-200 bg-sky-50 py-2 sm:py-2.5 pr-10 pl-4 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
-            style={{ fontFamily: 'inherit' }}
-          />
+          <form onSubmit={handleSearchSubmit}>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 z-10">
+              <MagnifyingGlassIcon className="h-5 w-5 text-dark-lighter" />
+            </div>
+            <input
+              type="text"
+              placeholder="ابحث في النظام..."
+              value={searchInput}
+              onChange={handleSearchInputChange}
+              onFocus={handleSearchInputFocus}
+              className="block w-full rounded-lg border border-sky-200 bg-sky-50 py-2 sm:py-2.5 pr-10 pl-4 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
+              style={{ fontFamily: 'inherit' }}
+            />
+          </form>
+          {showSearchDropdown && searchQuery && (
+            <SearchDropdown
+              results={searchResults}
+              loading={searchLoading}
+              query={searchQuery}
+              onClose={() => setShowSearchDropdown(false)}
+            />
+          )}
         </div>
 
         {/* Search Button - Mobile */}
@@ -136,18 +190,36 @@ export default function Header({ onMenuClick }) {
         {/* Mobile Search Bar */}
         {showSearch && (
           <div className="md:hidden fixed top-14 left-0 right-0 bg-white border-b border-sky-100 shadow-md px-4 py-3 z-40">
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <MagnifyingGlassIcon className="h-5 w-5 text-dark-lighter" />
+            <form onSubmit={handleSearchSubmit}>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-dark-lighter" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="ابحث في النظام..."
+                  value={searchInput}
+                  onChange={handleSearchInputChange}
+                  onFocus={handleSearchInputFocus}
+                  className="block w-full rounded-lg border-2 border-sky-200 bg-sky-50 py-2.5 pr-10 pl-4 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
+                  style={{ fontFamily: 'inherit' }}
+                  autoFocus
+                />
               </div>
-              <input
-                type="text"
-                placeholder="ابحث عن محتوى..."
-                className="block w-full rounded-lg border-2 border-sky-200 bg-sky-50 py-2.5 pr-10 pl-4 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
-                style={{ fontFamily: 'inherit' }}
-                autoFocus
-              />
-            </div>
+            </form>
+            {showSearchDropdown && searchQuery && (
+              <div className="absolute top-full left-0 right-0 mt-1">
+                <SearchDropdown
+                  results={searchResults}
+                  loading={searchLoading}
+                  query={searchQuery}
+                  onClose={() => {
+                    setShowSearchDropdown(false);
+                    setShowSearch(false);
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -158,6 +230,7 @@ export default function Header({ onMenuClick }) {
               setShowNotificationsMenu(!showNotificationsMenu);
               setShowUserMenu(false);
               setShowSearch(false);
+              setShowSearchDropdown(false);
             }}
             className="relative rounded-lg p-2 sm:p-2.5 text-dark-lighter hover:bg-sky-50 hover:text-dark transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20"
             aria-label="الإشعارات"
@@ -250,6 +323,7 @@ export default function Header({ onMenuClick }) {
               setShowUserMenu(!showUserMenu);
               setShowNotificationsMenu(false);
               setShowSearch(false);
+              setShowSearchDropdown(false);
             }}
             className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-sky-400 text-white text-xs sm:text-sm font-semibold hover:bg-sky-500 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/20 flex-shrink-0"
           >

@@ -20,6 +20,7 @@ import {
   LifebuoyIcon,
   ClipboardDocumentListIcon,
   SparklesIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
@@ -34,10 +35,12 @@ import {
   LifebuoyIcon as LifebuoyIconSolid,
   ClipboardDocumentListIcon as ClipboardDocumentListIconSolid,
   SparklesIcon as SparklesIconSolid,
+  MagnifyingGlassIcon as MagnifyingGlassIconSolid,
 } from '@heroicons/react/24/solid';
 
 const navigation = [
   { name: 'الرئيسية', href: '/dashboard', icon: HomeIcon, iconSolid: HomeIconSolid },
+  { name: 'البحث', href: '/dashboard/search', icon: MagnifyingGlassIcon, iconSolid: MagnifyingGlassIconSolid },
   { name: 'الحالات', href: '/dashboard/cases', icon: FolderIcon, iconSolid: FolderIconSolid },
   { name: 'الحالات الجديدة', href: '/dashboard/cases/new', icon: SparklesIcon, iconSolid: SparklesIconSolid },
   { name: 'طلبات الإسناد', href: '/dashboard/cases/assignment-requests', icon: ClipboardDocumentListIcon, iconSolid: ClipboardDocumentListIconSolid },

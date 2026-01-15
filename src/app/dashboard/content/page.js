@@ -625,10 +625,233 @@ export default function ContentPage() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-sky-100">
+          <div className={activeTab === 'approved' ? 'space-y-6' : 'divide-y divide-sky-100'}>
             {filteredContent.map((content) => {
               const ContentIcon = contentTypeIcons[content.content_type] || DocumentTextIcon;
+              
+              // الحصول على رابط الصورة
+              const getImageUrl = () => {
+                if (content.image_urls?.original) {
+                  return content.image_urls.original;
+                }
+                if (content.image_urls?.large) {
+                  return content.image_urls.large;
+                }
+                if (content.file) {
+                  const baseUrl = process.env.NEXT_PUBLIC_API_URL 
+                    ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
+                    : 'https://medismile1-production.up.railway.app';
+                  return content.file.startsWith('http') 
+                    ? content.file 
+                    : `${baseUrl}${content.file}`;
+                }
+                return null;
+              };
 
+              const imageUrl = getImageUrl();
+              const hasImage = imageUrl && (
+                imageUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) || 
+                imageUrl.includes('/media/')
+              );
+
+              // تصميم خاص للمنشورات الموافق عليها (شكل Facebook/Instagram)
+              if (activeTab === 'approved' && content.status === 'approved') {
+                return (
+                  <div key={content.id} className="rounded-lg bg-white border border-sky-200 shadow-sm overflow-hidden">
+                    {/* Post Header */}
+                    <div className="p-4 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-sky-400 flex items-center justify-center text-white font-semibold text-sm">
+                          {(content.author_name?.[0] || content.author?.first_name?.[0] || 'U').toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-sm font-semibold text-dark" style={{ fontFamily: 'inherit' }}>
+                              {content.author_name || `${content.author?.first_name || ''} ${content.author?.last_name || ''}`.trim() || 'مستخدم'}
+                            </h3>
+                            {content.university_name && (
+                              <>
+                                <span className="text-xs text-dark-lighter">•</span>
+                                <span className="text-xs text-dark-lighter">{content.university_name}</span>
+                              </>
+                            )}
+                          </div>
+                          {content.created_at && (
+                            <p className="text-xs text-dark-lighter mt-0.5">
+                              {new Date(content.created_at).toLocaleDateString('ar-SA', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Post Content */}
+                    {content.title && (
+                      <div className="px-4 pb-2">
+                        <h4 className="text-base font-bold text-dark" style={{ fontFamily: 'inherit' }}>
+                          {content.title}
+                        </h4>
+                      </div>
+                    )}
+                    
+                    {(content.content || content.description) && (
+                      <div className="px-4 pb-3">
+                        <p className="text-sm text-dark whitespace-pre-wrap leading-relaxed" style={{ fontFamily: 'inherit' }}>
+                          {content.content || content.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Post Image - عرض الصورة بشكل كبير */}
+                    {hasImage && (
+                      <div className="w-full bg-sky-50">
+                        <img
+                          src={imageUrl}
+                          alt={content.title || 'صورة المنشور'}
+                          className="w-full h-auto object-contain"
+                          style={{ maxHeight: '600px' }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Video */}
+                    {content.file && !hasImage && content.file.match(/\.(mp4|webm|ogg)$/i) && (
+                      <div className="w-full bg-sky-900">
+                        <video
+                          src={content.file.startsWith('http') ? content.file : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://medismile1-production.up.railway.app'}${content.file}`}
+                          controls
+                          className="w-full h-auto"
+                          style={{ maxHeight: '600px' }}
+                        >
+                          متصفحك لا يدعم تشغيل الفيديو
+                        </video>
+                      </div>
+                    )}
+
+                    {/* Post Actions - الإعجابات والتعليقات */}
+                    <div className="px-4 py-3 border-t border-sky-100">
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => handleReactToPost(content.id)}
+                          className="flex items-center gap-2 text-dark hover:text-sky-600 transition-colors"
+                        >
+                          {content.liked ? (
+                            <HeartIconSolid className="h-6 w-6 text-red-500" />
+                          ) : (
+                            <HeartIcon className="h-6 w-6" />
+                          )}
+                          <span className="text-sm font-medium">{content.likes_count || 0}</span>
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const newSelectedPost = selectedPostForComment === content.id ? null : content.id;
+                            setSelectedPostForComment(newSelectedPost);
+                            
+                            if (newSelectedPost && (!content.comments || content.comments.length === 0)) {
+                              try {
+                                await dispatch(fetchPostComments(content.id));
+                              } catch (error) {
+                                console.error('Failed to fetch comments:', error);
+                              }
+                            }
+                          }}
+                          className="flex items-center gap-2 text-dark hover:text-sky-600 transition-colors"
+                        >
+                          <ChatBubbleLeftRightIcon className="h-6 w-6" />
+                          <span className="text-sm font-medium">{content.comments_count || content.comments?.length || 0}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Comments Section */}
+                    {selectedPostForComment === content.id && (
+                      <div className="px-4 pb-4 border-t border-sky-100 bg-sky-50/50">
+                        {/* Add Comment Form */}
+                        <div className="pt-3 mb-3">
+                          <textarea
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            rows={2}
+                            placeholder="أضف تعليقاً..."
+                            className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all resize-none mb-2"
+                            style={{ fontFamily: 'inherit' }}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleAddComment(content.id)}
+                              className="flex-1 rounded-lg bg-sky-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-sky-600 transition-colors"
+                              style={{ fontFamily: 'inherit' }}
+                            >
+                              إرسال
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedPostForComment(null);
+                                setCommentText('');
+                              }}
+                              className="rounded-lg border border-sky-200 bg-white px-3 py-1.5 text-sm font-semibold text-dark hover:bg-sky-50 transition-colors"
+                              style={{ fontFamily: 'inherit' }}
+                            >
+                              إلغاء
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Comments List */}
+                        {content.comments && content.comments.length > 0 && (
+                          <div className="space-y-3 pt-3 border-t border-sky-200">
+                            {content.comments.map((comment) => (
+                              <div key={comment.id} className="flex gap-3">
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-sky-300 flex items-center justify-center text-white text-xs font-semibold">
+                                  {(comment.author_name?.[0] || comment.author?.first_name?.[0] || 'U').toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="bg-white rounded-lg p-3 border border-sky-200">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <p className="text-sm font-semibold text-dark" style={{ fontFamily: 'inherit' }}>
+                                        {comment.author_name || comment.author?.first_name || comment.author?.username || 'مستخدم'}
+                                      </p>
+                                      {comment.created_at && (
+                                        <span className="text-xs text-dark-lighter">
+                                          {new Date(comment.created_at).toLocaleDateString('ar-SA', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                          })}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-dark leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'inherit' }}>
+                                      {comment.text || comment.content || 'لا يوجد نص'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {(!content.comments || content.comments.length === 0) && (
+                          <div className="pt-3 text-center">
+                            <p className="text-sm text-dark-lighter" style={{ fontFamily: 'inherit' }}>لا توجد تعليقات بعد</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // التصميم الأصلي للمحتوى المعلق
               return (
                 <div key={content.id} className="p-5 sm:p-6 hover:bg-sky-50 transition-colors">
                   <div className="flex items-start justify-between gap-4">
@@ -656,7 +879,7 @@ export default function ContentPage() {
                         </p>
                       </div>
 
-                      {content.file && (
+                      {content.file && !hasImage && (
                         <div className="mb-4">
                           {(() => {
                             const baseUrl = process.env.NEXT_PUBLIC_API_URL 
@@ -666,18 +889,7 @@ export default function ContentPage() {
                               ? content.file 
                               : `${baseUrl}${content.file}`;
                             
-                            if (content.file.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-                              return (
-                                <img
-                                  src={fileUrl}
-                                  alt="محتوى وسائط"
-                                  className="max-w-md rounded-lg border-2 border-sky-200"
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                  }}
-                                />
-                              );
-                            } else if (content.file.match(/\.(mp4|webm|ogg)$/i)) {
+                            if (content.file.match(/\.(mp4|webm|ogg)$/i)) {
                               return (
                                 <video
                                   src={fileUrl}
@@ -703,7 +915,7 @@ export default function ContentPage() {
                         </div>
                       )}
                       
-                      {content.media_url && (
+                      {content.media_url && !content.image_urls?.original && !content.file && (
                         <div className="mb-4">
                           {content.content_type === 'media' && content.media_type?.startsWith('image') ? (
                             <img

@@ -9,6 +9,7 @@ import reportsSlice from './slices/reportsSlice';
 import notificationsSlice from './slices/notificationsSlice';
 import supportSlice from './slices/supportSlice';
 import messagingSlice from './slices/messagingSlice';
+import searchSlice from './slices/searchSlice';
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     notifications: notificationsSlice,
     support: supportSlice,
     messaging: messagingSlice,
+    search: searchSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
