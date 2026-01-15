@@ -14,8 +14,8 @@ const api = axios.create({
 // Interceptor لإضافة Token تلقائياً
 api.interceptors.request.use(
   (config) => {
-    // الحصول على Token من localStorage
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    // الحصول على Token من sessionStorage (Access Token) - أكثر أماناً
+    const token = typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null;
     
     // إضافة Token إلى Header إذا كان موجوداً ولم يكن موجوداً بالفعل
     if (token && !config.headers.Authorization) {
@@ -62,7 +62,7 @@ api.interceptors.response.use(
           const { access } = response.data;
           
           if (access && typeof window !== 'undefined') {
-            localStorage.setItem('access_token', access);
+            sessionStorage.setItem('access_token', access); // sessionStorage للـ access token الجديد
             
             // تحديث الـ header للطلب الأصلي
             originalRequest.headers.Authorization = `Bearer ${access}`;
@@ -74,7 +74,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // إذا فشل تجديد Token، مسح البيانات وإعادة توجيه
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('access_token');
+          sessionStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           localStorage.removeItem('user');
           
@@ -88,7 +88,7 @@ api.interceptors.response.use(
       
       // إذا لم يكن هناك refresh token، مسح البيانات
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
+        sessionStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         

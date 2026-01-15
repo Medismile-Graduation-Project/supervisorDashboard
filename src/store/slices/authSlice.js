@@ -48,11 +48,11 @@ export const login = createAsyncThunk(
         });
       }
       
-      // حفظ Tokens في localStorage فوراً
+      // حفظ Tokens: Access Token في sessionStorage (أكثر أماناً)، Refresh Token في localStorage
       if (typeof window !== 'undefined') {
-        localStorage.setItem('access_token', tokens.access);
+        sessionStorage.setItem('access_token', tokens.access); // sessionStorage - يُمسح عند إغلاق المتصفح
         if (tokens.refresh) {
-          localStorage.setItem('refresh_token', tokens.refresh);
+          localStorage.setItem('refresh_token', tokens.refresh); // localStorage - يبقى للتجديد
         }
       }
       
@@ -90,7 +90,7 @@ export const login = createAsyncThunk(
       } catch (userError) {
         // إذا فشل جلب بيانات المستخدم، نمسح Tokens ونعيد الخطأ
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('access_token');
+          sessionStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
         }
         return rejectWithValue({
@@ -153,9 +153,9 @@ export const logout = createAsyncThunk(
         }
       }
       
-      // حذف Tokens من localStorage دائماً
+      // حذف Tokens: من sessionStorage و localStorage
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
+        sessionStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
       }
@@ -164,7 +164,7 @@ export const logout = createAsyncThunk(
     } catch (error) {
       // حتى لو فشل الطلب، نمسح البيانات المحلية
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
+        sessionStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
       }
@@ -230,8 +230,8 @@ const getInitialState = () => {
 
   try {
     const userStr = localStorage.getItem('user');
-    const accessToken = localStorage.getItem('access_token');
-    const refreshToken = localStorage.getItem('refresh_token');
+    const accessToken = sessionStorage.getItem('access_token'); // sessionStorage
+    const refreshToken = localStorage.getItem('refresh_token'); // localStorage
     
     // التحقق من حالة الحظر
     const lockoutRemaining = checkLockout();
@@ -279,8 +279,8 @@ const authSlice = createSlice({
       if (typeof window !== 'undefined' && !state.initialized) {
         try {
           const userStr = localStorage.getItem('user');
-          const accessToken = localStorage.getItem('access_token');
-          const refreshToken = localStorage.getItem('refresh_token');
+          const accessToken = sessionStorage.getItem('access_token'); // sessionStorage
+          const refreshToken = localStorage.getItem('refresh_token'); // localStorage
           
           // التحقق من حالة الحظر
           const lockoutRemaining = checkLockout();

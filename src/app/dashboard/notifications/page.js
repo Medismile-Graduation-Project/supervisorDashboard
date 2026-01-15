@@ -102,7 +102,8 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const token = localStorage.getItem('access_token');
+    // استخدام sessionStorage للـ access token (أكثر أماناً)
+    const token = sessionStorage.getItem('access_token');
     if (!token) {
       console.warn('No access token found for WebSocket connection');
       return;
@@ -160,7 +161,8 @@ export default function NotificationsPage() {
       // إعادة الاتصال بعد 5 ثوانٍ فقط إذا لم يكن إغلاقاً طوعياً
       if (event.code !== 1000 && event.code !== 1001) {
         setTimeout(() => {
-          if (typeof window !== 'undefined' && localStorage.getItem('access_token')) {
+          // استخدام sessionStorage للـ access token (أكثر أماناً)
+          if (typeof window !== 'undefined' && sessionStorage.getItem('access_token')) {
             // سيتم إعادة الاتصال تلقائياً عند تحميل الصفحة مرة أخرى
             console.log('WebSocket will reconnect on next page load');
           }

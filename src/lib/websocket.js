@@ -36,7 +36,8 @@ class WebSocketManager {
    */
   getAuthToken() {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('access_token');
+    // استخدام sessionStorage للـ access token (أكثر أماناً)
+    return sessionStorage.getItem('access_token');
   }
 
   /**
