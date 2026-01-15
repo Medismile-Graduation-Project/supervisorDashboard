@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { highlightMatches } from '@/utils/searchUtils';
 import {
   FolderIcon,
   ClipboardDocumentCheckIcon,
@@ -123,6 +124,28 @@ export default function SearchDropdown({ results, loading, query, onClose }) {
     }
   };
 
+  // Render highlighted text
+  const renderHighlightedText = (text, maxLength = 60) => {
+    if (!text || !query) return text?.toString() || '';
+    
+    const textStr = text.toString();
+    const truncated = textStr.length > maxLength 
+      ? textStr.substring(0, maxLength) + '...' 
+      : textStr;
+    
+    const parts = highlightMatches(truncated, query);
+    
+    return parts.map((part, index) => 
+      part.isMatch ? (
+        <mark key={index} className="bg-yellow-200 font-semibold text-dark">
+          {part.text}
+        </mark>
+      ) : (
+        <span key={index}>{part.text}</span>
+      )
+    );
+  };
+
   const totalResults = results?.total || 0;
   const hasResults = totalResults > 0;
 
@@ -168,11 +191,11 @@ export default function SearchDropdown({ results, loading, query, onClose }) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-dark line-clamp-1" style={{ fontFamily: 'inherit' }}>
-                              {getItemTitle(item, category)}
+                              {renderHighlightedText(getItemTitle(item, category), 50)}
                             </p>
                             {getItemSubtitle(item, category) && (
                               <p className="text-xs text-dark-lighter line-clamp-1 mt-0.5" style={{ fontFamily: 'inherit' }}>
-                                {getItemSubtitle(item, category)}
+                                {renderHighlightedText(getItemSubtitle(item, category), 50)}
                               </p>
                             )}
                           </div>

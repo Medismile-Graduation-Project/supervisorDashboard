@@ -5,7 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { searchAcrossAll, setQuery, clearSearch } from '@/store/slices/searchSlice';
+import { fetchCases } from '@/store/slices/casesSlice';
+import { fetchReports } from '@/store/slices/reportsSlice';
+import { fetchSessionsNeedingReview } from '@/store/slices/sessionsSlice';
+import { fetchAppointments } from '@/store/slices/appointmentsSlice';
+import { fetchNotifications } from '@/store/slices/notificationsSlice';
+import { fetchEvaluations } from '@/store/slices/evaluationsSlice';
+import { fetchPendingContent, fetchApprovedContent } from '@/store/slices/contentSlice';
+import { fetchThreads } from '@/store/slices/messagingSlice';
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { highlightMatches } from '@/utils/searchUtils';
 import {
   FolderIcon,
   ClipboardDocumentCheckIcon,
@@ -56,33 +65,65 @@ export default function SearchPage() {
   const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const { query, results, loading, recentSearches } = useAppSelector((state) => state.search);
+  const { user } = useAppSelector((state) => state.auth);
   const [localQuery, setLocalQuery] = useState(query || '');
 
-  // Handle query parameter from URL
+  // جلب جميع البيانات اللازمة للبحث عند فتح الصفحة
+  useEffect(() => {
+    // التحقق من وجود بيانات المستخدم قبل جلب البيانات
+    if (user?.id && user?.university) {
+      // جلب جميع البيانات للبحث الشامل
+      dispatch(fetchCases());
+      dispatch(fetchReports());
+      dispatch(fetchSessionsNeedingReview());
+      dispatch(fetchAppointments());
+      dispatch(fetchNotifications({ limit: 50 })); // جلب عدد أكبر للإشعارات للبحث
+      dispatch(fetchEvaluations());
+      dispatch(fetchPendingContent());
+      dispatch(fetchApprovedContent());
+      dispatch(fetchThreads({})); // جلب جميع المحادثات
+    }
+  }, [dispatch, user]);
+
+  // Handle query parameter from URL (only on mount or when URL changes)
   useEffect(() => {
     const urlQuery = searchParams.get('q');
     if (urlQuery && urlQuery.trim().length >= 2) {
       const trimmedQuery = urlQuery.trim();
-      if (trimmedQuery !== localQuery) {
-        setLocalQuery(trimmedQuery);
-        dispatch(setQuery(trimmedQuery));
-        dispatch(searchAcrossAll(trimmedQuery));
-      }
-    } else if (!urlQuery && localQuery) {
-      // Clear if no query param
+      setLocalQuery(trimmedQuery);
+      dispatch(setQuery(trimmedQuery));
+      dispatch(searchAcrossAll(trimmedQuery));
+    } else if (!urlQuery && localQuery && !query) {
+      // Clear if no query param and no active query
       setLocalQuery('');
-      dispatch(clearSearch());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Update search when localQuery changes (with debounce)
   useEffect(() => {
-    if (query && query.length >= 2) {
-      dispatch(searchAcrossAll(query));
-    } else {
-      dispatch(clearSearch());
+    // Skip if query came from URL (to avoid duplicate searches)
+    const urlQuery = searchParams.get('q');
+    if (urlQuery && localQuery === urlQuery) {
+      return;
     }
-  }, [query, dispatch]);
+
+    const timeoutId = setTimeout(() => {
+      const trimmedQuery = localQuery.trim();
+      if (trimmedQuery.length >= 2) {
+        // Only update if different from current query
+        if (trimmedQuery !== query) {
+          dispatch(setQuery(trimmedQuery));
+          dispatch(searchAcrossAll(trimmedQuery));
+        }
+      } else if (trimmedQuery.length === 0) {
+        // Clear search if input is empty
+        dispatch(clearSearch());
+      }
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(timeoutId);
+  }, [localQuery, dispatch, query, searchParams]);
 
   const handleSearch = (searchTerm) => {
     const trimmedQuery = searchTerm.trim();
@@ -96,6 +137,7 @@ export default function SearchPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Immediately search without waiting for debounce
     handleSearch(localQuery);
   };
 
@@ -108,6 +150,28 @@ export default function SearchPage() {
     setLocalQuery(recentQuery);
     dispatch(setQuery(recentQuery));
     dispatch(searchAcrossAll(recentQuery));
+  };
+
+  // Render highlighted text
+  const renderHighlightedText = (text, maxLength = 100) => {
+    if (!text || !query) return text?.toString() || '';
+    
+    const textStr = text.toString();
+    const truncated = textStr.length > maxLength 
+      ? textStr.substring(0, maxLength) + '...' 
+      : textStr;
+    
+    const parts = highlightMatches(truncated, query);
+    
+    return parts.map((part, index) => 
+      part.isMatch ? (
+        <mark key={index} className="bg-yellow-200 font-semibold text-dark px-0.5 rounded">
+          {part.text}
+        </mark>
+      ) : (
+        <span key={index}>{part.text}</span>
+      )
+    );
   };
 
   const renderResultItem = (item, category) => {
@@ -138,21 +202,21 @@ export default function SearchPage() {
     const getSubtitle = () => {
       switch (category) {
         case 'cases':
-          return item.description?.substring(0, 100) || item.status || '';
+          return item.description || item.status || '';
         case 'sessions':
-          return item.notes?.substring(0, 100) || item.student?.first_name || '';
+          return item.notes || item.student?.first_name || '';
         case 'appointments':
-          return item.notes?.substring(0, 100) || item.location || '';
+          return item.notes || item.location || '';
         case 'messages':
-          return item.last_message?.content?.substring(0, 100) || '';
+          return item.last_message?.content || '';
         case 'notifications':
-          return item.message?.substring(0, 100) || '';
+          return item.message || '';
         case 'reports':
-          return item.description?.substring(0, 100) || '';
+          return item.description || '';
         case 'evaluations':
           return item.status || '';
         case 'content':
-          return item.description?.substring(0, 100) || '';
+          return item.description || '';
         default:
           return '';
       }
@@ -179,16 +243,16 @@ export default function SearchPage() {
           <div className="flex-shrink-0 p-2 rounded-lg bg-sky-100 group-hover:bg-sky-200 transition-colors">
             <Icon className="h-5 w-5 text-sky-600" />
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-dark mb-1 line-clamp-1" style={{ fontFamily: 'inherit' }}>
-              {getTitle()}
-            </h3>
-            {getSubtitle() && (
-              <p className="text-xs text-dark-lighter line-clamp-2" style={{ fontFamily: 'inherit' }}>
-                {getSubtitle()}
-              </p>
-            )}
-          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-semibold text-dark mb-1 line-clamp-1" style={{ fontFamily: 'inherit' }}>
+                              {renderHighlightedText(getTitle(), 80)}
+                            </h3>
+                            {getSubtitle() && (
+                              <p className="text-xs text-dark-lighter line-clamp-2" style={{ fontFamily: 'inherit' }}>
+                                {renderHighlightedText(getSubtitle(), 100)}
+                              </p>
+                            )}
+                          </div>
         </div>
       </button>
     );
@@ -217,7 +281,9 @@ export default function SearchPage() {
               type="text"
               placeholder="ابحث عن أي شيء..."
               value={localQuery}
-              onChange={(e) => setLocalQuery(e.target.value)}
+              onChange={(e) => {
+                setLocalQuery(e.target.value);
+              }}
               className="block w-full rounded-lg border border-sky-200 bg-sky-50 px-4 py-3.5 pr-10 pl-4 text-sm text-dark placeholder-dark-lighter/60 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-all"
               style={{ fontFamily: 'inherit' }}
               autoFocus
